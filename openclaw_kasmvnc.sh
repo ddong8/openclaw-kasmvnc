@@ -390,7 +390,7 @@ if ! pgrep -u "$(id -u)" -f "xfce4-session" >/dev/null 2>&1; then
 fi
 
 if command -v xdg-settings >/dev/null 2>&1; then
-  DISPLAY="${DISPLAY}" xdg-settings set default-web-browser chromium.desktop >/dev/null 2>&1 || true
+  DISPLAY="${DISPLAY}" xdg-settings set default-web-browser chromium-kasm.desktop >/dev/null 2>&1 || true
 fi
 
 if [[ "$#" -gt 0 ]]; then
