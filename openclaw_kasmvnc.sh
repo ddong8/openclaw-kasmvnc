@@ -15,6 +15,7 @@ HTTPS_PORT="${HTTPS_PORT:-8443}"
 GATEWAY_PORT="${GATEWAY_PORT:-18789}"
 PURGE=0
 TAIL_LINES="${TAIL_LINES:-200}"
+HTTP_PROXY_URL="${HTTP_PROXY_URL:-}"
 
 usage() {
   cat <<'EOF'
@@ -37,6 +38,7 @@ Options:
   --kasm-password <str>  OPENCLAW_KASMVNC_PASSWORD (auto-generate on install if omitted)
   --https-port <port>    KasmVNC HTTPS host port (default: 8443)
   --gateway-port <port>  OpenClaw gateway host port (default: 18789)
+  --proxy <url>           HTTP proxy for container (default: none, e.g. http://192.168.1.131:10808)
   --tail <n>             Log lines for logs command (default: 200)
   --purge                For uninstall: delete install dir
   -h, --help             Show this help
@@ -119,6 +121,10 @@ parse_args() {
         TAIL_LINES="${2:?missing value for --tail}"
         shift 2
         ;;
+      --proxy)
+        HTTP_PROXY_URL="${2:?missing value for --proxy}"
+        shift 2
+        ;;
       --purge)
         PURGE=1
         shift
@@ -184,6 +190,12 @@ services:
       LANG: zh_CN.UTF-8
       LANGUAGE: zh_CN:zh
       LC_ALL: zh_CN.UTF-8
+      HTTP_PROXY: ${OPENCLAW_HTTP_PROXY:-}
+      HTTPS_PROXY: ${OPENCLAW_HTTP_PROXY:-}
+      http_proxy: ${OPENCLAW_HTTP_PROXY:-}
+      https_proxy: ${OPENCLAW_HTTP_PROXY:-}
+      NO_PROXY: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
+      no_proxy: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
     ports:
       - "${OPENCLAW_KASMVNC_HTTPS_PORT:-8443}:8444"
     shm_size: '2gb'
@@ -463,6 +475,9 @@ install_cmd() {
     upsert_env_line .env LANG "zh_CN.UTF-8"
     upsert_env_line .env LANGUAGE "zh_CN:zh"
     upsert_env_line .env LC_ALL "zh_CN.UTF-8"
+    if [[ -n "$HTTP_PROXY_URL" ]]; then
+      upsert_env_line .env OPENCLAW_HTTP_PROXY "$HTTP_PROXY_URL"
+    fi
     compose_cmd up -d --build openclaw-gateway
     assert_gateway_running
   )

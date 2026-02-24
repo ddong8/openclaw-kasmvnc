@@ -9,6 +9,7 @@ param(
   [string]$HttpsPort = "8443",
   [string]$GatewayPort = "18789",
   [int]$Tail = 200,
+  [string]$Proxy = "",
   [switch]$Purge
 )
 
@@ -131,6 +132,12 @@ services:
       LANG: zh_CN.UTF-8
       LANGUAGE: zh_CN:zh
       LC_ALL: zh_CN.UTF-8
+      HTTP_PROXY: ${OPENCLAW_HTTP_PROXY:-}
+      HTTPS_PROXY: ${OPENCLAW_HTTP_PROXY:-}
+      http_proxy: ${OPENCLAW_HTTP_PROXY:-}
+      https_proxy: ${OPENCLAW_HTTP_PROXY:-}
+      NO_PROXY: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
+      no_proxy: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
     ports:
       - "${OPENCLAW_KASMVNC_HTTPS_PORT:-8443}:8444"
     shm_size: '2gb'
@@ -415,6 +422,9 @@ function Install-Command {
     Upsert-EnvLine -FilePath ".env" -Key "LANG" -Value "zh_CN.UTF-8"
     Upsert-EnvLine -FilePath ".env" -Key "LANGUAGE" -Value "zh_CN:zh"
     Upsert-EnvLine -FilePath ".env" -Key "LC_ALL" -Value "zh_CN.UTF-8"
+    if ($Proxy -ne "") {
+      Upsert-EnvLine -FilePath ".env" -Key "OPENCLAW_HTTP_PROXY" -Value $Proxy
+    }
 
     Invoke-Compose -ComposeArgs @("up", "-d", "--build", "openclaw-gateway")
     Assert-GatewayRunning
