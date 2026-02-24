@@ -191,11 +191,12 @@ RUN printf '%s\n' \
   > /usr/local/bin/chromium-kasm \
   && chmod +x /usr/local/bin/chromium-kasm \
   && sed -i 's|^Exec=/usr/bin/chromium %U|Exec=/usr/local/bin/chromium-kasm %U|' /usr/share/applications/chromium.desktop \
+  && echo 'NoDisplay=true' >> /usr/share/applications/chromium.desktop \
   && sed -i 's|^Exec=exo-open --launch WebBrowser %u|Exec=/usr/local/bin/chromium-kasm %u|' /usr/share/applications/xfce4-web-browser.desktop \
   && printf '%s\n' \
     '[Desktop Entry]' \
     'Version=1.0' \
-    'Name=Chromium (KasmVNC)' \
+    'Name=Chromium' \
     'GenericName=Web Browser' \
     'Exec=/usr/local/bin/chromium-kasm %U' \
     'Terminal=false' \
@@ -210,7 +211,7 @@ RUN printf '%s\n' \
     'X-XFCE-Category=WebBrowser' \
     'X-XFCE-Commands=/usr/local/bin/chromium-kasm' \
     'X-XFCE-CommandsWithParameter=/usr/local/bin/chromium-kasm "%s"' \
-    'Name=Chromium (KasmVNC)' \
+    'Name=Chromium' \
     'Icon=chromium' \
     > /usr/share/xfce4/helpers/chromium-kasm.desktop
 
