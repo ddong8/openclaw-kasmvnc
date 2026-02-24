@@ -274,6 +274,14 @@ RUN set -eux; \
   rm -f "/tmp/${pkg}"; \
   rm -rf /var/lib/apt/lists/*
 
+# Default "Enable Local IME" to true in the KasmVNC web client
+RUN find /usr/share/kasmvnc/www -name '*.js' -exec \
+  sed -i "s/initSetting('enable_ime',false)/initSetting('enable_ime',true)/g; \
+          s/initSetting('enable_ime', false)/initSetting('enable_ime', true)/g; \
+          s/initSetting(\"enable_ime\",false)/initSetting(\"enable_ime\",true)/g; \
+          s/initSetting(\"enable_ime\", false)/initSetting(\"enable_ime\", true)/g" {} + \
+  || true
+
 COPY scripts/docker/openclaw-kasmvnc-entrypoint.sh /usr/local/bin/openclaw-kasmvnc-entrypoint
 RUN sed -i 's/\r$//' /usr/local/bin/openclaw-kasmvnc-entrypoint \
   && chmod +x /usr/local/bin/openclaw-kasmvnc-entrypoint \
