@@ -309,12 +309,15 @@ KASMVNC_PASSWORD="${OPENCLAW_KASMVNC_PASSWORD:-}"
 RESOLUTION="${OPENCLAW_KASMVNC_RESOLUTION:-1920x1080}"
 DEPTH="${OPENCLAW_KASMVNC_DEPTH:-24}"
 
-mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
+mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
 chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
 
 # Ensure gateway config allows non-loopback Control UI access
-if [ ! -f "${HOME}/.openclaw/openclaw.json" ]; then
-  cat > "${HOME}/.openclaw/openclaw.json" <<'EOCFG'
+_openclaw_dir="${HOME}/.openclaw"
+mkdir -p "${_openclaw_dir}" 2>/dev/null || true
+if [ ! -f "${_openclaw_dir}/openclaw.json" ]; then
+  if [ -w "${_openclaw_dir}" ]; then
+    cat > "${_openclaw_dir}/openclaw.json" <<'EOCFG'
 {
   "gateway": {
     "mode": "local",
@@ -325,6 +328,24 @@ if [ ! -f "${HOME}/.openclaw/openclaw.json" ]; then
   }
 }
 EOCFG
+  else
+    # Volume mount owned by root; use a temp writable location
+    _fallback="/tmp/openclaw-config"
+    mkdir -p "${_fallback}"
+    cat > "${_fallback}/openclaw.json" <<'EOCFG'
+{
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  }
+}
+EOCFG
+    export OPENCLAW_STATE_DIR="${_fallback}"
+    echo "WARN: ${_openclaw_dir} not writable by $(whoami), using ${_fallback} for config"
+  fi
 fi
 
 # Make `openclaw` command available in interactive shells
