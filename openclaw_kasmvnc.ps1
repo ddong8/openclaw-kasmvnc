@@ -2,7 +2,7 @@ param(
   [ValidateSet("install", "uninstall", "restart", "upgrade", "status", "logs")]
   [string]$Command = "install",
   [string]$RepoUrl = "https://github.com/openclaw/openclaw.git",
-  [string]$Branch = "main",
+  [string]$Branch = "",
   [string]$InstallDir = "$HOME\openclaw-kasmvnc",
   [string]$GatewayToken = "",
   [string]$KasmPassword = "",
@@ -14,6 +14,19 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Resolve the latest release tag from GitHub API; fall back to "main".
+function Resolve-LatestTag {
+  try {
+    $resp = Invoke-RestMethod -Uri "https://api.github.com/repos/openclaw/openclaw/releases/latest" `
+      -TimeoutSec 5 -ErrorAction Stop
+    if ($resp.tag_name) { return $resp.tag_name }
+  }
+  catch {}
+  return "main"
+}
+
+if (-not $Branch) { $Branch = Resolve-LatestTag }
 
 function Assert-Command {
   param([string]$Name)
@@ -398,12 +411,19 @@ function Install-Command {
     git clone --branch $Branch --depth 1 $RepoUrl $repoDir
   }
   else {
-    Write-Host "Repo exists, pulling latest: $repoDir"
+    Write-Host "Repo exists, updating to ${Branch}: $repoDir"
     Push-Location $repoDir
     try {
-      git fetch origin $Branch
-      git checkout $Branch
-      git pull --rebase origin $Branch
+      git fetch origin --tags
+      git checkout $Branch 2>$null
+      if ($LASTEXITCODE -ne 0) {
+        git checkout "tags/$Branch" -b "release-$Branch" 2>$null
+      }
+      # Only pull if on a branch (tags are immutable)
+      $symRef = git symbolic-ref -q HEAD 2>$null
+      if ($symRef) {
+        git pull --rebase origin $Branch 2>$null
+      }
     }
     finally {
       Pop-Location
@@ -502,9 +522,15 @@ function Upgrade-Command {
   Require-Repo
   Push-Location (Get-RepoDir)
   try {
-    git fetch origin $Branch
-    git checkout $Branch
-    git pull --rebase origin $Branch
+    git fetch origin --tags
+    git checkout $Branch 2>$null
+    if ($LASTEXITCODE -ne 0) {
+      git checkout "tags/$Branch" -b "release-$Branch" 2>$null
+    }
+    $symRef = git symbolic-ref -q HEAD 2>$null
+    if ($symRef) {
+      git pull --rebase origin $Branch 2>$null
+    }
     Ensure-KasmvncOverlay
     Ensure-BaseImage
     Invoke-Compose -ComposeArgs @("up", "-d", "--build", "openclaw-gateway")

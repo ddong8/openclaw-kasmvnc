@@ -7,7 +7,21 @@ if [[ $# -gt 0 ]]; then
 fi
 
 REPO_URL="${REPO_URL:-https://github.com/openclaw/openclaw.git}"
-BRANCH="${BRANCH:-main}"
+
+# Resolve the latest release tag from GitHub API; fall back to "main".
+resolve_latest_tag() {
+  local tag
+  tag=$(curl -sf --connect-timeout 5 \
+    "https://api.github.com/repos/openclaw/openclaw/releases/latest" \
+    | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4) 2>/dev/null || true
+  if [[ -n "$tag" ]]; then
+    echo "$tag"
+  else
+    echo "main"
+  fi
+}
+
+BRANCH="${BRANCH:-$(resolve_latest_tag)}"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/openclaw-kasmvnc}"
 GATEWAY_TOKEN="${GATEWAY_TOKEN:-}"
 KASM_PASSWORD="${KASM_PASSWORD:-}"
@@ -32,7 +46,7 @@ Commands:
 
 Options:
   --repo-url <url>       Git repo URL (default: https://github.com/openclaw/openclaw.git)
-  --branch <name>        Git branch (default: main)
+  --branch <name>        Git branch/tag (default: latest release, fallback: main)
   --install-dir <path>   Install directory (default: $HOME/openclaw-kasmvnc)
   --gateway-token <str>  OPENCLAW_GATEWAY_TOKEN (auto-generate on install if omitted)
   --kasm-password <str>  OPENCLAW_KASMVNC_PASSWORD (auto-generate on install if omitted)
@@ -460,12 +474,15 @@ install_cmd() {
   if [[ ! -d "$d/.git" ]]; then
     git clone --branch "$BRANCH" --depth 1 "$REPO_URL" "$d"
   else
-    echo "Repo exists, pulling latest: $d"
+    echo "Repo exists, updating to $BRANCH: $d"
     (
       cd "$d"
-      git fetch origin "$BRANCH"
-      git checkout "$BRANCH"
-      git pull --rebase origin "$BRANCH"
+      git fetch origin --tags
+      git checkout "$BRANCH" 2>/dev/null || git checkout "tags/$BRANCH" -b "release-$BRANCH" 2>/dev/null || true
+      # Only pull if on a branch (tags are immutable)
+      if git symbolic-ref -q HEAD >/dev/null 2>&1; then
+        git pull --rebase origin "$BRANCH" 2>/dev/null || true
+      fi
     )
   fi
 
@@ -544,9 +561,11 @@ upgrade_cmd() {
   require_repo
   (
     cd "$(repo_dir)"
-    git fetch origin "$BRANCH"
-    git checkout "$BRANCH"
-    git pull --rebase origin "$BRANCH"
+    git fetch origin --tags
+    git checkout "$BRANCH" 2>/dev/null || git checkout "tags/$BRANCH" -b "release-$BRANCH" 2>/dev/null || true
+    if git symbolic-ref -q HEAD >/dev/null 2>&1; then
+      git pull --rebase origin "$BRANCH" 2>/dev/null || true
+    fi
     ensure_kasmvnc_overlay
     ensure_base_image
     compose_cmd up -d --build openclaw-gateway
