@@ -48,8 +48,6 @@ assert_cmd() {
   fi
 }
 
-# Base image build is no longer needed – OpenClaw is installed via npm
-# inside the KasmVNC Dockerfile directly.
 
 random_hex() {
   local bytes="${1:-32}"
@@ -142,6 +140,7 @@ services:
         KASMVNC_VERSION: ${OPENCLAW_KASMVNC_VERSION:-1.3.0}
         HTTP_PROXY: ${OPENCLAW_HTTP_PROXY:-}
         HTTPS_PROXY: ${OPENCLAW_HTTP_PROXY:-}
+        OPENC_CACHE_BUST: ${OPENC_CACHE_BUST:-1}
     image: ${OPENCLAW_KASMVNC_IMAGE:-openclaw:kasmvnc}
     command:
       [
@@ -193,9 +192,12 @@ services:
 EOF
 
   cat >"$d/Dockerfile.kasmvnc" <<'EOF'
-FROM node:22-bookworm-slim
+FROM node:22-bookworm
 
 USER root
+
+# Remove dpkg exclusions so translation files (locales) are installed for full UI localization
+RUN rm -f /etc/dpkg/dpkg.cfg.d/docker && rm -f /etc/apt/apt.conf.d/docker-clean
 
 # Configure apt to use Tsinghua mirror for faster downloads in China
 RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
@@ -213,6 +215,7 @@ ARG HTTPS_PROXY
 # Install OpenClaw via npm (pre-built, includes correct version metadata)
 # Configure npm registry and force git to use HTTPS, preserving optional dependencies
 # Disable SSL verification for git to prevent issues with proxies
+ARG OPENC_CACHE_BUST=1
 RUN npm config set registry https://registry.npmmirror.com \
  && git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
@@ -610,7 +613,7 @@ upgrade_cmd() {
   (
     cd "$INSTALL_DIR"
     ensure_build_context
-    compose_cmd build --no-cache openclaw-gateway
+    OPENC_CACHE_BUST="$(date +%s)" compose_cmd build --build-arg OPENC_CACHE_BUST openclaw-gateway
     compose_cmd up -d openclaw-gateway
     assert_gateway_running
   )

@@ -36,8 +36,6 @@ function New-RandomHex {
   return ($buf | ForEach-Object { $_.ToString("x2") }) -join ""
 }
 
-# Base image build is no longer needed – OpenClaw is installed via npm
-# inside the KasmVNC Dockerfile directly.
 
 function Upsert-EnvLine {
   param(
@@ -85,6 +83,7 @@ services:
         KASMVNC_VERSION: ${OPENCLAW_KASMVNC_VERSION:-1.3.0}
         HTTP_PROXY: ${OPENCLAW_HTTP_PROXY:-}
         HTTPS_PROXY: ${OPENCLAW_HTTP_PROXY:-}
+        OPENC_CACHE_BUST: ${OPENC_CACHE_BUST:-1}
     image: ${OPENCLAW_KASMVNC_IMAGE:-openclaw:kasmvnc}
     command:
       [
@@ -136,9 +135,12 @@ services:
 '@ | ForEach-Object { Set-UnixContent -Path (Join-Path $InstallDir "docker-compose.yml") -Value $_ }
 
   @'
-FROM node:22-bookworm-slim
+FROM node:22-bookworm
 
 USER root
+
+# Remove dpkg exclusions so translation files (locales) are installed for full UI localization
+RUN rm -f /etc/dpkg/dpkg.cfg.d/docker && rm -f /etc/apt/apt.conf.d/docker-clean
 
 # Configure apt to use Tsinghua mirror for faster downloads in China
 RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
@@ -156,6 +158,7 @@ ARG HTTPS_PROXY
 # Install OpenClaw via npm (pre-built, includes correct version metadata)
 # Configure npm registry and force git to use HTTPS, preserving optional dependencies
 # Disable SSL verification for git to prevent issues with proxies
+ARG OPENC_CACHE_BUST=1
 RUN npm config set registry https://registry.npmmirror.com \
  && git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
@@ -568,7 +571,8 @@ function Upgrade-Command {
   Push-Location $InstallDir
   try {
     Ensure-BuildContext
-    Invoke-Compose -ComposeArgs @("build", "--no-cache", "openclaw-gateway")
+    $cacheBust = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+    Invoke-Compose -ComposeArgs @("build", "--build-arg", "OPENC_CACHE_BUST=$cacheBust", "openclaw-gateway")
     Invoke-Compose -ComposeArgs @("up", "-d", "openclaw-gateway")
     Assert-GatewayRunning
   }
