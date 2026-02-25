@@ -347,7 +347,7 @@ export BROWSER="/usr/local/bin/chromium-kasm"
 
 # Resolve OpenClaw version for UI display (npm global install)
 if [ -z "${OPENCLAW_VERSION:-}" ]; then
-  OPENCLAW_VERSION=$(node -p "try{require('openclaw/package.json').version}catch(e){'dev'}" 2>/dev/null || echo "dev")
+  OPENCLAW_VERSION=$(openclaw --version 2>/dev/null | head -n1 || echo "dev")
   export OPENCLAW_VERSION
 fi
 
