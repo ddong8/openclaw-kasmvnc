@@ -176,12 +176,14 @@ services:
       - ${OPENCLAW_WORKSPACE_DIR:-./.openclaw/workspace}:/home/node/.openclaw/workspace
     ports:
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
-      - "${OPENCLAW_GATEWAY_BRIDGE_PORT:-18790}:18790"
-      - "${OPENCLAW_KASMVNC_HTTPS_PORT:-8443}:8444"
-    shm_size: '2gb'
     privileged: true
     init: true
     restart: unless-stopped
+EOF
+
+  # 动态检测是否存在 nvidia-smi，如果存在则自动注入 GPU 支持配置
+  if command -v nvidia-smi >/dev/null 2>&1 || [[ "${OPENCLAW_ENABLE_GPU:-0}" == "1" ]]; then
+    cat >>"$d/docker-compose.yml" <<'EOF'
     deploy:
       resources:
         reservations:
@@ -190,6 +192,7 @@ services:
               count: all
               capabilities: [gpu]
 EOF
+  fi
 
   cat >"$d/Dockerfile.kasmvnc" <<'EOF'
 FROM node:22-bookworm

@@ -125,6 +125,10 @@ services:
     privileged: true
     init: true
     restart: unless-stopped
+"@
+
+  if ((Get-Command nvidia-smi -ErrorAction SilentlyContinue) -or ($env:OPENCLAW_ENABLE_GPU -eq "1")) {
+    $composeYaml += @"
     deploy:
       resources:
         reservations:
@@ -132,7 +136,10 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-'@ | ForEach-Object { Set-UnixContent -Path (Join-Path $InstallDir "docker-compose.yml") -Value $_ }
+"@
+  }
+
+  $composeYaml | ForEach-Object { Set-UnixContent -Path (Join-Path $InstallDir "docker-compose.yml") -Value $_ }
 
   @'
 FROM node:22-bookworm
