@@ -13,7 +13,7 @@ resolve_latest_tag() {
   local tag
   tag=$(curl -sf --connect-timeout 5 \
     "https://api.github.com/repos/openclaw/openclaw/releases/latest" \
-    | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4) 2>/dev/null || true
+    | sed -n 's/.*"tag_name" *: *"\([^"]*\)".*/\1/p' | head -1) 2>/dev/null || true
   if [[ -n "$tag" ]]; then
     echo "$tag"
   else
