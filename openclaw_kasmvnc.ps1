@@ -140,8 +140,14 @@ FROM node:22-bookworm-slim
 
 USER root
 
-# Install git (required by some npm lifecycle scripts)
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+# Configure apt to use Tsinghua mirror for faster downloads in China
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
+ && sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
+ && sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true \
+ && sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true
+
+# Install git and ssh client (required by some npm lifecycle scripts and git dependencies)
+RUN apt-get update && apt-get install -y --no-install-recommends git openssh-client && rm -rf /var/lib/apt/lists/*
 
 # Accept proxy build arguments
 ARG HTTP_PROXY
@@ -149,9 +155,12 @@ ARG HTTPS_PROXY
 
 # Install OpenClaw via npm (pre-built, includes correct version metadata)
 # Configure npm registry and force git to use HTTPS, preserving optional dependencies
+# Disable SSL verification for git to prevent issues with proxies
 RUN npm config set registry https://registry.npmmirror.com \
  && git config --global url."https://github.com/".insteadOf "git@github.com:" \
+ && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://" \
+ && git config --global http.sslVerify false \
  && npm install -g openclaw@latest
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
 ENV TZ=Asia/Shanghai
