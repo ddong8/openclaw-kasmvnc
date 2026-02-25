@@ -176,6 +176,9 @@ services:
       - ${OPENCLAW_WORKSPACE_DIR:-./.openclaw/workspace}:/home/node/.openclaw/workspace
     ports:
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_GATEWAY_BRIDGE_PORT:-18790}:18790"
+      - "${OPENCLAW_KASMVNC_HTTPS_PORT:-8443}:8444"
+    shm_size: '2gb'
     privileged: true
     init: true
     restart: unless-stopped
