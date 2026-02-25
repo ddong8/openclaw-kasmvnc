@@ -214,6 +214,7 @@ services:
     ports:
       - "${OPENCLAW_KASMVNC_HTTPS_PORT:-8443}:8444"
     shm_size: '2gb'
+    privileged: true
 EOF
 
   cat >"$d/Dockerfile.kasmvnc" <<'EOF'
@@ -240,6 +241,7 @@ RUN apt-get update \
     chromium \
     curl \
     dbus-x11 \
+    dconf-cli \
     fonts-noto-cjk \
     gnupg \
     ibus \
@@ -260,6 +262,15 @@ RUN apt-get update \
   && sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen \
   && locale-gen zh_CN.UTF-8 \
   && update-locale LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CE for Docker-in-Docker support
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bookworm stable" \
+     > /etc/apt/sources.list.d/docker.list \
+  && apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+     docker-ce docker-ce-cli containerd.io docker-compose-plugin \
   && rm -rf /var/lib/apt/lists/*
 
 RUN printf '%s\n' \
@@ -319,7 +330,7 @@ COPY scripts/docker/systemctl-shim.sh /usr/local/bin/systemctl
 COPY scripts/docker/openclaw-kasmvnc-entrypoint.sh /usr/local/bin/openclaw-kasmvnc-entrypoint
 RUN sed -i 's/\r$//' /usr/local/bin/systemctl /usr/local/bin/openclaw-kasmvnc-entrypoint \
   && chmod +x /usr/local/bin/systemctl /usr/local/bin/openclaw-kasmvnc-entrypoint \
-  && usermod -a -G ssl-cert node \
+  && usermod -a -G ssl-cert,docker node \
   && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 USER node
@@ -351,6 +362,15 @@ DEPTH="${OPENCLAW_KASMVNC_DEPTH:-24}"
 mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
 chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
 
+# Start Docker daemon in background for DinD support
+if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+  sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &
+  for i in $(seq 1 10); do
+    [ -S /var/run/docker.sock ] && break
+    sleep 1
+  done
+fi
+
 # Make `openclaw` command available in interactive shells
 if ! grep -q 'alias openclaw=' "${HOME}/.bashrc" 2>/dev/null; then
   cat >> "${HOME}/.bashrc" <<'EOALIAS'
@@ -380,6 +400,20 @@ OnlyShowIn=XFCE;
 X-GNOME-Autostart-enabled=true
 EOH
 
+# Pre-configure IBus to use libpinyin as default input engine.
+mkdir -p "${HOME}/.config/dconf"
+cat > /tmp/ibus-dconf-dump <<'EODCONF'
+[desktop/ibus/general]
+preload-engines=['xkb:us::eng','libpinyin']
+use-system-keyboard-layout=false
+
+[desktop/ibus/general/hotkey]
+triggers=['<Control>space']
+EODCONF
+if command -v dconf >/dev/null 2>&1; then
+  dconf load / < /tmp/ibus-dconf-dump 2>/dev/null || true
+fi
+
 if ! id -u "${KASMVNC_USER}" >/dev/null 2>&1; then
   KASMVNC_USER="node"
 fi
@@ -388,6 +422,13 @@ cat > "${HOME}/.vnc/xstartup" <<'EOH'
 #!/usr/bin/env bash
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+  eval "$(dbus-launch --sh-syntax 2>/dev/null)" || true
+  export DBUS_SESSION_BUS_ADDRESS
+fi
+if command -v dconf >/dev/null 2>&1 && [ -f /tmp/ibus-dconf-dump ]; then
+  dconf load / < /tmp/ibus-dconf-dump 2>/dev/null || true
+fi
 if command -v ibus-daemon >/dev/null 2>&1; then
   ibus-daemon -drx >/tmp/openclaw-ibus.log 2>&1 || true
 fi
