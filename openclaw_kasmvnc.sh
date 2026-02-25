@@ -195,11 +195,12 @@ FROM node:22-bookworm-slim
 
 USER root
 
-# Install git (required by npm for git-protocol dependencies)
+# Install git (required by some npm lifecycle scripts)
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
 # Install OpenClaw via npm (pre-built, includes correct version metadata)
-RUN npm install -g openclaw@latest
+# --omit=optional: skip @discordjs/opus which requires git clone from GitHub
+RUN npm install -g --omit=optional openclaw@latest
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
 ENV TZ=Asia/Shanghai
 ENV LANG=zh_CN.UTF-8
