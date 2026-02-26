@@ -718,7 +718,7 @@ function Upgrade-Command {
     Invoke-Compose -ComposeArgs @(
       "exec", "-T", "openclaw-gateway",
       "sh", "-lc",
-      "set -e; openclaw gateway restart >/tmp/openclaw-upgrade-restart.log 2>&1 || systemctl start openclaw-gateway; for i in `$(seq 1 30)`; do systemctl is-active openclaw-gateway >/dev/null 2>&1 && exit 0; sleep 1; done; echo 'Gateway process failed to start after upgrade' >&2; exit 1"
+      "set -e; openclaw gateway restart >/tmp/openclaw-upgrade-restart.log 2>&1 || openclaw gateway start; for i in `$(seq 1 30)`; do systemctl is-active openclaw-gateway >/dev/null 2>&1 && exit 0; sleep 1; done; echo 'Gateway process failed to start after upgrade' >&2; exit 1"
     )
     Assert-GatewayRunning
   }
