@@ -155,8 +155,8 @@ chmod +x ./openclaw_kasmvnc.sh
 2. 执行 `restart`（先用轻量重启）；
 3. 用 `status` 和 `logs --tail 200` 验证是否生效。
 
-> **注意**：容器内已启用 `OPENCLAW_NO_RESPAWN=1`，配置变更时 gateway 会在进程内重启，
-> 而非重新启动容器，VNC 桌面会话不会中断。
+> **注意**：配置变更时 gateway 能够自动以分离态子进程热重启，
+> 且由于主入口不退出，VNC 桌面会话不会意外中断。
 
 如果你修改的是镜像配置（例如自定义了 Dockerfile、添加了新系统依赖）、或者是需要更新 `openclaw` 的 npm 版本，仅 `restart` 不够，需要执行 `upgrade` 触发重建（仅更新 npm 层，秒级完成）。
 
@@ -235,7 +235,7 @@ powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command install
 
 - **本地输入法默认启用**：首次访问 KasmVNC 桌面时，"IME Input Mode（启用本地输入法）"默认开启，无需手动设置。
 - **中文环境预配置**：容器内默认设置 `TZ=Asia/Shanghai`、`LANG=zh_CN.UTF-8`，已预装中文字体和 ibus-libpinyin 输入法。
-- **进程内重启**：启用 `OPENCLAW_NO_RESPAWN=1`，配置变更时 gateway 在进程内热重启，不重建容器，VNC 桌面会话保持。
+- **子进程无损重启**：配置变更时 gateway 自动通过分离的子进程（spawn detached）热拉起新版本，不重建容器主进程，VNC 桌面会话保持且能完美加载更新。
 - **X11 状态清理**：入口脚本自动清理残留的 X11 锁文件和 VNC 进程，避免容器重启后黑屏。
 - **systemctl shim**：容器内没有 systemd，但内置了 `systemctl` shim 脚本，使 `openclaw gateway restart/stop/status` 等命令在容器内正常工作。
 
@@ -337,7 +337,7 @@ OpenClaw KasmVNC 已经内置了终极侦听切换机制。如遇此问题，请
 - 检查目标安装目录是否可读写；
 - 更换端口后再次安装。
 
-> 注意：脚本内已设置 `OPENCLAW_NO_RESPAWN=1`，正常的配置变更不会触发容器重启。
+> 注意：正常的配置变更（如 `openclaw gateway restart`）只会通过子进程热重启后台网关，不会触发系统级容器重启，因此 VNC 不会断连。
 > 如果仍出现容器反复重启，多为镜像构建或依赖问题，建议 `upgrade` 重建。
 
 ### 6. macOS 上安装出现 `chown: Operation not permitted`
