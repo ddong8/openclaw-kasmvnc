@@ -227,10 +227,6 @@ RUN npm config set registry https://registry.npmmirror.com \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://" \
  && git config --global http.sslVerify false \
- && npm config set maxsockets 3 \
- && npm config set fetch-retries 5 \
- && npm config set fetch-retry-mintimeout 20000 \
- && npm config set fetch-retry-maxtimeout 120000 \
  && npm install -g openclaw@latest \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
@@ -357,7 +353,7 @@ USER node
 EXPOSE 18789 18790 8443 8444
 
 ENTRYPOINT ["kasmvnc-startup"]
-CMD ["nice", "-n", "19", "ionice", "-c", "3", "openclaw", "gateway", "--bind", "lan", "--port", "18789"]
+CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
 EOF
 
   cat >"$d/scripts/docker/kasmvnc-startup.sh" <<'EOF'
@@ -396,21 +392,12 @@ if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
   done
 fi
 
-# Make `openclaw` command available in interactive shells
-if ! grep -q 'alias openclaw=' "${HOME}/.bashrc" 2>/dev/null; then
-  cat >> "${HOME}/.bashrc" <<'EOALIAS'
-# Wrap openclaw in nice/ionice to prevent CPU/IO starvation of VNC during heavy tasks like 'update'
-alias openclaw='nice -n 19 ionice -c 3 openclaw'
-EOALIAS
-fi
+# Ensure interactive shells call openclaw directly (no throttling alias)
+sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
-# Configure NPM settings locally to prevent cpu/io starvation during updates, preventing VNC drops
+# Configure NPM registry
 cat > "${HOME}/.npmrc" <<'EONPMRC'
 registry=https://registry.npmmirror.com
-maxsockets=3
-fetch-retries=5
-fetch-retry-mintimeout=20000
-fetch-retry-maxtimeout=120000
 EONPMRC
 
 mkdir -p "${HOME}/.config" "${HOME}/.config/xfce4"
