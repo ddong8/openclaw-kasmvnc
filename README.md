@@ -256,6 +256,19 @@ openclaw gateway status --probe
 
 > 这些命令通过内置的 `systemctl` shim 实现，将 systemd 调用转换为进程信号（SIGUSR1 / SIGTERM），无需真正的 systemd。
 
+## 避坑指南与已知问题
+
+### 1. 为什么使用 `pkill -f chromium` 会导致 VNC 断线？
+**原因：** KasmVNC 核心进程 `Xvnc` 的启动参数中含有剪贴板同步策略 (`chromium/x-web-custom-data`)。使用 `-f`（全文匹配）参数执行 `pkill` 时，会误将 VNC 服务进程一并清理，导致连接断开。
+**解决方案：** 必须使用精确匹配命令 `killall chromium` 或 `pkill -x chromium` 来清理残留的浏览器进程。请勿尝试将浏览器二进制文件改名重做软链接，这无法防范正则误杀，且易破坏环境一致性。
+
+### 2. 执行 `openclaw update` 时 VNC 出现短暂闪断
+**原因：** 并非进程被误杀。`npm install` 在抽取全球或解压庞大依赖树时，瞬间会爆发极高的 CPU 和磁盘 I/O 占用。KasmVNC 强依赖服务器实时响应以维持 WebSocket 的心跳侦测，若系统底层资源被 npm 短暂榨干（如宿主机性能不足持续 3-5 秒无响应），前端浏览器便会抛出超时断连，表现为网页刷新闪断。
+**解决方案：** 这是系统资源被后台安装进程暂时“抢光”引发的心跳假死，只要底层完成 I/O 自然就会恢复。我们在最新版架构中加入了双重保险：
+1. **并发削峰**：自动植入 `npm config set maxsockets 3` 操作，降低并发网络连接和解压风暴。
+2. **底层优先级降级**：所有经入口或终端调用的 `openclaw` 更新后台任务，均被包装在 `nice -n 19 ionice -c 3` 环境运行。强制其在操作系统 CPU 与磁盘调度队列处于最低级。此时，KasmVNC 将能永远优先获得心跳包处理资源，彻底根治此类假死断线。
+如果您使用的是旧环境，建议在宿主机使用 `./openclaw_kasmvnc.sh upgrade` 拉取最新的保护机制重建即可。
+
 ## 常见问题（FAQ）
 
 ### 1. 端口被占用怎么办

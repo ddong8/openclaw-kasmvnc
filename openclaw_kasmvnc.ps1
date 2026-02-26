@@ -167,10 +167,14 @@ ARG HTTPS_PROXY
 # Disable SSL verification for git to prevent issues with proxies
 ARG OPENC_CACHE_BUST=1
 RUN npm config set registry https://registry.npmmirror.com \
- && git config --global url."https://github.com/".insteadOf "git@github.com:" \
- && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
- && git config --global url."https://".insteadOf "git://" \
+ && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\" \
+ && git config --global url.\"https://github.com/\".insteadOf \"ssh://git@github.com/\" \
+ && git config --global url.\"https://\".insteadOf \"git://\" \
  && git config --global http.sslVerify false \
+ && npm config set maxsockets 3 \
+ && npm config set fetch-retries 5 \
+ && npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000 \
  && npm install -g openclaw@latest \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
@@ -296,7 +300,7 @@ USER node
 EXPOSE 18789 18790 8443 8444
 
 ENTRYPOINT ["openclaw-kasmvnc-entrypoint"]
-CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
+CMD ["nice", "-n", "19", "ionice", "-c", "3", "openclaw", "gateway", "--bind", "lan", "--port", "18789"]
 '@ | ForEach-Object { Set-UnixContent -Path (Join-Path $InstallDir "Dockerfile.kasmvnc") -Value $_ }
 
   @'
@@ -338,9 +342,19 @@ fi
 # Make `openclaw` command available in interactive shells
 if ! grep -q 'alias openclaw=' "${HOME}/.bashrc" 2>/dev/null; then
   cat >> "${HOME}/.bashrc" <<'EOALIAS'
-# openclaw is already on PATH via npm global install
+# Wrap openclaw in nice/ionice to prevent CPU/IO starvation of VNC during heavy tasks like 'update'
+alias openclaw='nice -n 19 ionice -c 3 openclaw'
 EOALIAS
 fi
+
+# Configure NPM settings locally to prevent cpu/io starvation during updates, preventing VNC drops
+cat > "${HOME}/.npmrc" <<'EONPMRC'
+registry=https://registry.npmmirror.com
+maxsockets=3
+fetch-retries=5
+fetch-retry-mintimeout=20000
+fetch-retry-maxtimeout=120000
+EONPMRC
 
 mkdir -p "${HOME}/.config" "${HOME}/.config/xfce4"
 cat > "${HOME}/.config/xfce4/helpers.rc" <<'EOH'
