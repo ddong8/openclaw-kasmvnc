@@ -31,21 +31,32 @@ curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw_kasmvnc/main/opencl
 - `openclaw_kasmvnc.sh`：macOS/Linux 统一管理脚本
 - `openclaw_kasmvnc.ps1`：Windows 统一管理脚本
 
-说明：脚本会自动生成 KasmVNC 所需的 `docker-compose.kasmvnc.yml`、`Dockerfile.kasmvnc` 和入口脚本，再执行容器构建与启动。
+说明：脚本会自动生成 `docker-compose.yml`、`Dockerfile.kasmvnc`、容器入口脚本 `kasmvnc-startup.sh` 和 systemctl shim 脚本，再执行容器构建与启动。
 构建过程中会通过 `npm install -g openclaw@latest` 将 OpenClaw 全局安装到容器内。
+
+脚本运行后在安装目录下生成的文件结构：
+```
+<安装目录>/
+├── .env                              # 环境变量配置（token、密码、端口等）
+├── .openclaw/                        # OpenClaw 持久化配置和工作区（挂载到容器内）
+├── docker-compose.yml                # Compose 服务定义
+├── Dockerfile.kasmvnc                # 镜像构建指令（node:22 + KasmVNC + XFCE + Fcitx5）
+└── scripts/docker/
+    ├── kasmvnc-startup.sh            # 容器入口脚本（启动 VNC → 桌面 → 输入法 → 网关）
+    └── systemctl-shim.sh             # systemctl 模拟（将 systemd 调用转为进程信号）
+```
 
 两个脚本都支持以下子命令：
 - `install` — 配置 + 构建/启动容器
 
 - `uninstall` — 停止容器；加 `--purge` 删除安装目录
 - `restart` — 重启 openclaw-gateway 容器
-- `upgrade` — 拉取最新代码并重建/重启容器
+- `upgrade` — 在运行中的容器内升级 OpenClaw npm 包并热重启网关（不重建镜像）
 - `status` — 查看 compose 服务状态
 - `logs` — 查看 compose 日志
 
 ## 前置条件
 
-- Git
 - Docker（含 Docker Compose v2）
 - Windows: PowerShell 5+ / 7+
 - macOS/Linux: Bash
@@ -158,7 +169,7 @@ chmod +x ./openclaw_kasmvnc.sh
 > **注意**：配置变更时 gateway 能够自动以分离态子进程热重启，
 > 且由于主入口不退出，VNC 桌面会话不会意外中断。
 
-如果你修改的是镜像配置（例如自定义了 Dockerfile、添加了新系统依赖）、或者是需要更新 `openclaw` 的 npm 版本，仅 `restart` 不够，需要执行 `upgrade` 触发重建（仅更新 npm 层，秒级完成）。
+如果你修改的是镜像配置（例如自定义了 Dockerfile、添加了新系统依赖），仅 `restart` 不够，需要执行 `upgrade` 触发容器内 npm 升级并热重启网关。
 
 ## 可选参数
 
@@ -234,7 +245,7 @@ powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command install
 ## 内置优化
 
 - **本地输入法默认启用**：首次访问 KasmVNC 桌面时，"IME Input Mode（启用本地输入法）"默认开启，无需手动设置。
-- **中文环境预配置**：容器内默认设置 `TZ=Asia/Shanghai`、`LANG=zh_CN.UTF-8`，已预装中文字体和 ibus-libpinyin 输入法。
+- **中文环境预配置**：容器内默认设置 `TZ=Asia/Shanghai`、`LANG=zh_CN.UTF-8`，已预装中文字体（Noto CJK）和 Fcitx5 + Rime（雾凇拼音）输入法。
 - **子进程无损重启**：配置变更时 gateway 自动通过分离的子进程（spawn detached）热拉起新版本，不重建容器主进程，VNC 桌面会话保持且能完美加载更新。
 - **X11 状态清理**：入口脚本自动清理残留的 X11 锁文件和 VNC 进程，避免容器重启后黑屏。
 - **systemctl shim**：容器内没有 systemd，但内置了 `systemctl` shim 脚本，使 `openclaw gateway restart/stop/start/install/uninstall/update` 等全部命令在容器内正常工作。shim 通过 `lsof` 端口检测识别网关进程，避免 Node.js `process.title` 覆盖 cmdline 导致的误判。
@@ -264,11 +275,8 @@ openclaw gateway status --probe
 **当前状态：** 已通过覆写 `/etc/kasmvnc/kasmvnc.yaml` 移除该 MIME 类型，Xvnc 命令行不再包含 "chromium"。使用最新版本安装后，`pkill -f chromium` 不会影响 VNC。如果你仍在旧版本上遇到此问题，执行 `upgrade` 重建即可。
 
 ### 2. 执行 `openclaw update` 时 VNC 出现短暂闪断
-**原因：** 并非进程被误杀。`npm install` 在抽取全球或解压庞大依赖树时，瞬间会爆发极高的 CPU 和磁盘 I/O 占用。KasmVNC 强依赖服务器实时响应以维持 WebSocket 的心跳侦测，若系统底层资源被 npm 短暂榨干（如宿主机性能不足持续 3-5 秒无响应），前端浏览器便会抛出超时断连，表现为网页刷新闪断。
-**解决方案：** 这是系统资源被后台安装进程暂时“抢光”引发的心跳假死，只要底层完成 I/O 自然就会恢复。我们在最新版架构中加入了双重保险：
-1. **并发削峰**：自动植入 `npm config set maxsockets 3` 操作，降低并发网络连接和解压风暴。
-2. **底层优先级降级**：所有经入口或终端调用的 `openclaw` 更新后台任务，均被包装在 `nice -n 19 ionice -c 3` 环境运行。强制其在操作系统 CPU 与磁盘调度队列处于最低级。此时，KasmVNC 将能永远优先获得心跳包处理资源，彻底根治此类假死断线。
-如果您使用的是旧环境，建议在宿主机使用 `./openclaw_kasmvnc.sh upgrade` 拉取最新的保护机制重建即可。
+**原因：** 并非进程被误杀。`npm install` 在解压庞大依赖树时，瞬间会爆发极高的 CPU 和磁盘 I/O 占用。KasmVNC 强依赖服务器实时响应以维持 WebSocket 心跳，若系统资源被 npm 短暂榨干（如宿主机性能不足持续 3-5 秒无响应），前端浏览器便会抛出超时断连，表现为网页刷新闪断。
+**解决方案：** 这是系统资源被后台安装进程暂时”抢光”引发的心跳假死，底层完成 I/O 后自然恢复。如果闪断频繁，建议在宿主机资源充裕时执行 `upgrade`。
 
 ## 常见问题（FAQ）
 
@@ -365,7 +373,7 @@ OpenClaw KasmVNC 已经内置了终极侦听切换机制。如遇此问题，请
 **解决方案**：
 进入 KasmVNC 桌面，打开终端模拟器直接执行以下清理命令，然后断开重连：
 ```bash
-rm -rf ~/.config/dconf && rm -f /tmp/ibus-dconf-dump
+rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml ~/.config/dconf
 ```
 
 ### 10. 日志太多不好看
