@@ -377,15 +377,30 @@ Default Layout=us
 DefaultIM=rime
 
 [Groups/0/Items/0]
-Name=keyboard-us
+Name=rime
 Layout=
 
 [Groups/0/Items/1]
-Name=rime
+Name=keyboard-us
 Layout=
 
 [GroupOrder]
 0=Default
+EOH
+
+# Force active state behavior
+cat > "${HOME}/.config/fcitx5/config" <<'EOH'
+[Behavior]
+ActiveByDefault=True
+ShareInputState=No
+PreeditEnabledByDefault=True
+EOH
+
+# Ensure Rime custom config handles ascii_mode and is owned by node
+mkdir -p "${HOME}/.local/share/fcitx5/rime"
+cat > "${HOME}/.local/share/fcitx5/rime/default.custom.yaml" <<'EOH'
+patch:
+  "switches/@0/reset": 0
 EOH
 
 if ! id -u "${KASMVNC_USER}" >/dev/null 2>&1; then
@@ -402,17 +417,6 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
 fi
 if command -v fcitx5 >/dev/null 2>&1; then
   fcitx5 -d >/tmp/openclaw-fcitx5.log 2>&1 || true
-fi
-if command -v fcitx5-remote >/dev/null 2>&1; then
-  # Force Chinese input mode (Rime) as the startup default.
-  (
-    for _ in $(seq 1 20); do
-      fcitx5-remote >/dev/null 2>&1 && break
-      sleep 0.2
-    done
-    fcitx5-remote -o >/dev/null 2>&1 || true
-    fcitx5-remote -s rime >/dev/null 2>&1 || true
-  ) &
 fi
 exec startxfce4
 EOH
