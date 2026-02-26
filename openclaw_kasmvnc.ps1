@@ -204,6 +204,7 @@ RUN apt-get update \
     libglu1-mesa \
     libglx-mesa0 \
     locales \
+    lsof \
     procps \
     sudo \
     tzdata \
@@ -521,6 +522,7 @@ start_gateway() {
 args=("$@"); action=""
 for a in "${args[@]}"; do
   case "$a" in
+    --version) echo "systemd 252 (shim)"; exit 0 ;;
     status|restart|start|stop|is-enabled|is-active|show|daemon-reload|enable|disable) [[ -z "$action" ]] && action="$a" ;;
   esac
 done
@@ -540,8 +542,8 @@ case "$action" in
       start_gateway; exit $?
     fi
     kill -USR1 "$pid" 2>/dev/null || { start_gateway; exit $?; }
-    # Wait for old process to die or a new one to appear (up to 30s)
-    for _ in $(seq 1 120); do
+    # Wait for old process to die or a new one to appear (up to 15s)
+    for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then
         # Old process exited — need to start a fresh one
         start_gateway; exit $?
@@ -553,7 +555,7 @@ case "$action" in
       fi
       sleep 0.25
     done
-    # Old process still alive after 30s — force kill and restart
+    # Old process still alive after 15s — force kill and restart
     kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 20); do
       kill -0 "$pid" 2>/dev/null || break
@@ -565,7 +567,7 @@ case "$action" in
     pid=$(find_gateway_pid || true)
     [[ -z "$pid" ]] && exit 0
     kill -TERM "$pid" 2>/dev/null || exit $?
-    for _ in $(seq 1 120); do
+    for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then
         exit 0
       fi
