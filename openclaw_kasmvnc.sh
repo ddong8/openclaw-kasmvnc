@@ -233,9 +233,9 @@ ENV TZ=Asia/Shanghai
 ENV LANG=zh_CN.UTF-8
 ENV LANGUAGE=zh_CN:zh
 ENV LC_ALL=zh_CN.UTF-8
-ENV GTK_IM_MODULE=ibus
-ENV QT_IM_MODULE=ibus
-ENV XMODIFIERS=@im=ibus
+ENV GTK_IM_MODULE=fcitx
+ENV QT_IM_MODULE=fcitx
+ENV XMODIFIERS=@im=fcitx
 
 ARG KASMVNC_VERSION=1.3.0
 ARG TARGETARCH
@@ -246,11 +246,13 @@ RUN apt-get update \
     chromium \
     curl \
     dbus-x11 \
-    dconf-cli \
     fonts-noto-cjk \
     gnupg \
-    ibus \
-    ibus-libpinyin \
+    fcitx5 \
+    fcitx5-rime \
+    fcitx5-frontend-gtk3 \
+    fcitx5-frontend-qt5 \
+    fcitx5-config-qt \
     libdatetime-perl \
     libegl1 \
     libglu1-mesa \
@@ -323,6 +325,13 @@ RUN set -eux; \
   rm -rf /var/lib/apt/lists/*
 
 
+# Install Rime Ice (雾凇拼音) dictionary and configuration
+RUN git clone --depth 1 https://github.com/iDvel/rime-ice.git /tmp/rime-ice \
+  && mkdir -p /home/node/.local/share/fcitx5/rime \
+  && cp -r /tmp/rime-ice/* /home/node/.local/share/fcitx5/rime/ \
+  && chown -R node:node /home/node/.local \
+  && rm -rf /tmp/rime-ice
+
 COPY scripts/docker/systemctl-shim.sh /usr/local/bin/systemctl
 COPY scripts/docker/openclaw-kasmvnc-entrypoint.sh /usr/local/bin/openclaw-kasmvnc-entrypoint
 RUN sed -i 's/\r$//' /usr/local/bin/systemctl /usr/local/bin/openclaw-kasmvnc-entrypoint \
@@ -346,9 +355,9 @@ export HOME="${HOME:-/home/node}"
 export USER="${USER:-node}"
 export DISPLAY="${OPENCLAW_KASMVNC_DISPLAY:-:1}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg-runtime}"
-export GTK_IM_MODULE="${GTK_IM_MODULE:-ibus}"
-export QT_IM_MODULE="${QT_IM_MODULE:-ibus}"
-export XMODIFIERS="${XMODIFIERS:-@im=ibus}"
+export GTK_IM_MODULE="${GTK_IM_MODULE:-fcitx}"
+export QT_IM_MODULE="${QT_IM_MODULE:-fcitx}"
+export XMODIFIERS="${XMODIFIERS:-@im=fcitx}"
 export BROWSER="/usr/local/bin/chromium-kasm"
 
 # Resolve OpenClaw version for UI display (npm global install)
@@ -392,31 +401,26 @@ x-scheme-handler/https=chromium-kasm.desktop
 text/html=chromium-kasm.desktop
 EOH
 mkdir -p "${HOME}/.config/autostart"
-cat > "${HOME}/.config/autostart/ibus-daemon.desktop" <<'EOH'
-[Desktop Entry]
-Type=Application
-Name=IBus Daemon
-Exec=ibus-daemon -drx
-Terminal=false
-OnlyShowIn=XFCE;
-X-GNOME-Autostart-enabled=true
+
+# Configure Fcitx5 profile: set Rime as the default input method
+mkdir -p "${HOME}/.config/fcitx5"
+cat > "${HOME}/.config/fcitx5/profile" <<'EOH'
+[Groups/0]
+Name=Default
+Default Layout=us
+DefaultIM=rime
+
+[Groups/0/Items/0]
+Name=keyboard-us
+Layout=
+
+[Groups/0/Items/1]
+Name=rime
+Layout=
+
+[GroupOrder]
+0=Default
 EOH
-
-# Pre-configure IBus to use libpinyin as default input engine.
-mkdir -p "${HOME}/.config/dconf"
-cat > /tmp/ibus-dconf-dump <<'EODCONF'
-[desktop/ibus/general]
-preload-engines=['libpinyin','xkb:us::eng']
-use-system-keyboard-layout=false
-
-[desktop/ibus/general/hotkey]
-triggers=['<Control>space']
-EODCONF
-if command -v dconf >/dev/null 2>&1; then
-  rm -rf "${HOME}/.config/dconf" 2>/dev/null || true
-  mkdir -p "${HOME}/.config/dconf"
-  dconf load / < /tmp/ibus-dconf-dump 2>/dev/null || true
-fi
 
 if ! id -u "${KASMVNC_USER}" >/dev/null 2>&1; then
   KASMVNC_USER="node"
@@ -430,28 +434,12 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
   eval "$(dbus-launch --sh-syntax 2>/dev/null)" || true
   export DBUS_SESSION_BUS_ADDRESS
 fi
-if command -v dconf >/dev/null 2>&1 && [ -f /tmp/ibus-dconf-dump ]; then
-  rm -rf "${HOME}/.config/dconf" 2>/dev/null || true
-  mkdir -p "${HOME}/.config/dconf"
-  dconf load / < /tmp/ibus-dconf-dump 2>/dev/null || true
-fi
-if command -v ibus-daemon >/dev/null 2>&1; then
-  ibus-daemon -drx >/tmp/openclaw-ibus.log 2>&1 || true
+if command -v fcitx5 >/dev/null 2>&1; then
+  fcitx5 -d >/tmp/openclaw-fcitx5.log 2>&1 || true
 fi
 exec startxfce4
 EOH
 chmod +x "${HOME}/.vnc/xstartup"
-
-# Autostart: force-activate libpinyin AFTER XFCE desktop is fully loaded
-cat > "${HOME}/.config/autostart/ibus-activate-pinyin.desktop" <<'EOH'
-[Desktop Entry]
-Type=Application
-Name=Activate IBus Pinyin
-Exec=bash -c "sleep 3 && ibus engine libpinyin"
-Terminal=false
-OnlyShowIn=XFCE;
-X-GNOME-Autostart-enabled=true
-EOH
 
 if command -v /usr/lib/kasmvncserver/select-de.sh >/dev/null 2>&1; then
   /usr/lib/kasmvncserver/select-de.sh -y -s XFCE >/tmp/openclaw-kasmvnc-selectde.log 2>&1 || true
