@@ -24,7 +24,7 @@ Commands:
   install      Configure + build/run container (no git required)
   uninstall    Stop container; optional --purge removes install dir
   restart      Restart openclaw-gateway container
-  upgrade      Rebuild container with latest npm package
+  upgrade      Upgrade OpenClaw in running container (no image rebuild)
   status       Show compose service status
   logs         Show compose logs (--tail <n>, default 200)
 
@@ -688,8 +688,24 @@ upgrade_cmd() {
   (
     cd "$INSTALL_DIR"
     ensure_build_context
-    OPENC_CACHE_BUST="$(date +%s)" compose_cmd build --build-arg OPENC_CACHE_BUST openclaw-gateway
     compose_cmd up -d openclaw-gateway
+    compose_cmd exec -T openclaw-gateway sh -lc '
+      set -e
+      echo "registry=https://registry.npmmirror.com" > "${HOME}/.npmrc"
+      attempt=1
+      until npm i -g openclaw@latest --no-audit --no-fund; do
+        if [ "${attempt}" -ge 3 ]; then
+          echo "openclaw upgrade failed after ${attempt} attempts" >&2
+          exit 1
+        fi
+        attempt=$((attempt + 1))
+        sleep 5
+      done
+    '
+    compose_cmd exec -T openclaw-gateway sh -lc '
+      set -e
+      openclaw gateway restart >/tmp/openclaw-upgrade-restart.log 2>&1 || true
+    '
     assert_gateway_running
   )
 }

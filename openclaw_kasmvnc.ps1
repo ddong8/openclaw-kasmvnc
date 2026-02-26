@@ -652,9 +652,17 @@ function Upgrade-Command {
   Push-Location $InstallDir
   try {
     Ensure-BuildContext
-    $cacheBust = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-    Invoke-Compose -ComposeArgs @("build", "--build-arg", "OPENC_CACHE_BUST=$cacheBust", "openclaw-gateway")
     Invoke-Compose -ComposeArgs @("up", "-d", "openclaw-gateway")
+    Invoke-Compose -ComposeArgs @(
+      "exec", "-T", "openclaw-gateway",
+      "sh", "-lc",
+      'set -e; echo "registry=https://registry.npmmirror.com" > "${HOME}/.npmrc"; npm i -g openclaw@latest --no-audit --no-fund || (sleep 5 && npm i -g openclaw@latest --no-audit --no-fund) || (sleep 5 && npm i -g openclaw@latest --no-audit --no-fund)'
+    )
+    Invoke-Compose -ComposeArgs @(
+      "exec", "-T", "openclaw-gateway",
+      "sh", "-lc",
+      "set -e; openclaw gateway restart >/tmp/openclaw-upgrade-restart.log 2>&1 || true"
+    )
     Assert-GatewayRunning
   }
   finally {
