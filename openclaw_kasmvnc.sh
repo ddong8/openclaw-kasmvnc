@@ -537,7 +537,7 @@ EOF
 # systemctl shim for Docker containers without systemd.
 # Translates OpenClaw gateway systemctl calls into process signals.
 set -euo pipefail
-find_gateway_pid() { pgrep -f "openclaw.*--port" 2>/dev/null | head -1 || true; }
+find_gateway_pid() { pgrep -f "openclaw.*--port" 2>/dev/null | grep -vw 1 | head -1 || true; }
 args=("$@"); action=""
 for a in "${args[@]}"; do
   case "$a" in
