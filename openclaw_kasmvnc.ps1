@@ -479,12 +479,13 @@ find_gateway_pid() {
   fi
 
   # Backward-compatible fallback for legacy `openclaw gateway ...` process names.
+  # Match the server process (has --port flag) and skip CLI subcommands (restart, stop, etc.)
   while IFS= read -r pid; do
     [[ -z "$pid" || "$pid" == "1" ]] && continue
     cmd="$(cat "/proc/${pid}/cmdline" 2>/dev/null | tr '\0' ' ' || true)"
     [[ -z "$cmd" ]] && continue
     [[ "$cmd" == *"kasmvnc-startup"* ]] && continue
-    if [[ "$cmd" =~ (^|[[:space:]])openclaw([[:space:]]|$) ]] && [[ "$cmd" =~ (^|[[:space:]])gateway([[:space:]]|$) ]]; then
+    if [[ "$cmd" =~ (^|[[:space:]])openclaw([[:space:]]|$) ]] && [[ "$cmd" =~ (^|[[:space:]])gateway([[:space:]]|$) ]] && [[ "$cmd" =~ --port ]]; then
       echo "$pid"
       return 0
     fi
