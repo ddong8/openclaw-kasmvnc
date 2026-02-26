@@ -171,7 +171,8 @@ RUN npm config set registry https://registry.npmmirror.com \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://" \
  && git config --global http.sslVerify false \
- && npm install -g openclaw@latest
+ && npm install -g openclaw@latest \
+ && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
 ENV TZ=Asia/Shanghai
 ENV LANG=zh_CN.UTF-8
