@@ -480,7 +480,7 @@ find_gateway_pid() {
   # Backward-compatible fallback for legacy `openclaw gateway ...` process names.
   while IFS= read -r pid; do
     [[ -z "$pid" || "$pid" == "1" ]] && continue
-    cmd="$(tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
+    cmd="$(cat "/proc/${pid}/cmdline" 2>/dev/null | tr '\0' ' ' || true)"
     [[ -z "$cmd" ]] && continue
     [[ "$cmd" == *"kasmvnc-startup"* ]] && continue
     if [[ "$cmd" =~ (^|[[:space:]])openclaw([[:space:]]|$) ]] && [[ "$cmd" =~ (^|[[:space:]])gateway([[:space:]]|$) ]]; then
