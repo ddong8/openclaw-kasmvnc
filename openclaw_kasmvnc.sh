@@ -527,29 +527,15 @@ EOF
 # Translates OpenClaw gateway systemctl calls into process signals.
 set -euo pipefail
 find_gateway_pid() {
-  local pid cmd
-
-  # Preferred path for modern OpenClaw builds.
-  # Exclude CLI subcommands (start, stop, restart, etc.) — only match the server process.
-  pid="$(pgrep -af "openclaw-gateway" 2>/dev/null | awk '$1 != 1 && $2 ~ /(^|\/)openclaw-gateway$/ && $3 !~ /^(start|stop|restart|install|uninstall|status|update|upgrade)$/ {print $1; exit}' || true)"
-  if [[ -n "$pid" ]]; then
+  local pid
+  # Find the process actually listening on the gateway port.
+  # This is the only reliable method because Node.js process.title overwrites
+  # the entire /proc/PID/cmdline, making server and CLI processes indistinguishable.
+  pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
+  if [[ -n "$pid" && "$pid" != "1" ]]; then
     echo "$pid"
     return 0
   fi
-
-  # Backward-compatible fallback for legacy `openclaw gateway ...` process names.
-  # Match the server process (has --port flag) and skip CLI subcommands (restart, stop, etc.)
-  while IFS= read -r pid; do
-    [[ -z "$pid" || "$pid" == "1" ]] && continue
-    cmd="$(cat "/proc/${pid}/cmdline" 2>/dev/null | tr '\0' ' ' || true)"
-    [[ -z "$cmd" ]] && continue
-    [[ "$cmd" == *"kasmvnc-startup"* ]] && continue
-    if [[ "$cmd" =~ (^|[[:space:]])openclaw([[:space:]]|$) ]] && [[ "$cmd" =~ (^|[[:space:]])gateway([[:space:]]|$) ]] && [[ "$cmd" =~ --port ]]; then
-      echo "$pid"
-      return 0
-    fi
-  done < <(pgrep -f "openclaw" 2>/dev/null || true)
-
   return 1
 }
 
@@ -588,9 +574,10 @@ for a in "${args[@]}"; do
 done
 case "$action" in
   daemon-reload|enable|disable) exit 0 ;;
-  status)
-    pid=$(find_gateway_pid || true)
-    [[ -n "$pid" ]] && exit 0 || exit 3 ;;
+  status|is-enabled)
+    # Always exit 0: the gateway service is always known/enabled in this container.
+    # openclaw CLI checks these before start/restart and treats non-zero as unavailable/disabled.
+    exit 0 ;;
   is-active)
     pid=$(find_gateway_pid || true)
     [[ -n "$pid" ]] && { echo "active"; exit 0; } || { echo "inactive"; exit 3; } ;;
@@ -615,9 +602,6 @@ case "$action" in
     done
     kill -KILL "$pid" 2>/dev/null || true
     exit 0 ;;
-  is-enabled)
-    pid=$(find_gateway_pid || true)
-    [[ -n "$pid" ]] && exit 0 || exit 1 ;;
   show)
     pid=$(find_gateway_pid || true)
     if [[ -n "$pid" ]]; then
