@@ -493,7 +493,7 @@ if command -v xdg-settings >/dev/null 2>&1; then
 fi
 
 if [[ "$#" -gt 0 ]]; then
-  exec "$@"
+  "$@" &
 fi
 
 sleep infinity
