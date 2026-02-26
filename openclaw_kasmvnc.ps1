@@ -228,32 +228,32 @@ RUN curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dea
 RUN printf '%s\n' \
   '#!/usr/bin/env bash' \
   'exec /usr/bin/chromium --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-software-rasterizer --test-type --no-first-run --disable-background-networking --disable-sync --disable-default-apps --disable-component-update --disable-features=TranslateUI --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 "$@"' \
-  > /usr/local/bin/kasm-browser \
-  && chmod +x /usr/local/bin/kasm-browser \
-  && sed -i 's|^Exec=/usr/bin/chromium %U|Exec=/usr/local/bin/kasm-browser %U|' /usr/share/applications/chromium.desktop \
+  > /usr/local/bin/chromium-kasm \
+  && chmod +x /usr/local/bin/chromium-kasm \
+  && sed -i 's|^Exec=/usr/bin/chromium %U|Exec=/usr/local/bin/chromium-kasm %U|' /usr/share/applications/chromium.desktop \
   && echo 'NoDisplay=true' >> /usr/share/applications/chromium.desktop \
-  && sed -i 's|^Exec=exo-open --launch WebBrowser %u|Exec=/usr/local/bin/kasm-browser %u|' /usr/share/applications/xfce4-web-browser.desktop \
+  && sed -i 's|^Exec=exo-open --launch WebBrowser %u|Exec=/usr/local/bin/chromium-kasm %u|' /usr/share/applications/xfce4-web-browser.desktop \
   && printf '%s\n' \
     '[Desktop Entry]' \
     'Version=1.0' \
     'Name=Chromium' \
     'GenericName=Web Browser' \
-    'Exec=/usr/local/bin/kasm-browser %U' \
+    'Exec=/usr/local/bin/chromium-kasm %U' \
     'Terminal=false' \
     'Type=Application' \
     'Icon=chromium' \
     'Categories=Network;WebBrowser;' \
     'MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;' \
-    > /usr/share/applications/kasm-browser.desktop \
+    > /usr/share/applications/chromium-kasm.desktop \
   && printf '%s\n' \
     '[Desktop Entry]' \
     'Type=X-XFCE-Helper' \
     'X-XFCE-Category=WebBrowser' \
-    'X-XFCE-Commands=/usr/local/bin/kasm-browser' \
-    'X-XFCE-CommandsWithParameter=/usr/local/bin/kasm-browser "%s"' \
+    'X-XFCE-Commands=/usr/local/bin/chromium-kasm' \
+    'X-XFCE-CommandsWithParameter=/usr/local/bin/chromium-kasm "%s"' \
     'Name=Chromium' \
     'Icon=chromium' \
-    > /usr/share/xfce4/helpers/kasm-browser.desktop
+    > /usr/share/xfce4/helpers/chromium-kasm.desktop
 
 RUN set -eux; \
   case "${TARGETARCH}" in \
@@ -309,7 +309,7 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg-runtime}"
 export GTK_IM_MODULE="${GTK_IM_MODULE:-fcitx}"
 export QT_IM_MODULE="${QT_IM_MODULE:-fcitx}"
 export XMODIFIERS="${XMODIFIERS:-@im=fcitx}"
-export BROWSER="/usr/local/bin/kasm-browser"
+export BROWSER="/usr/local/bin/chromium-kasm"
 
 # Resolve OpenClaw version for UI display (npm global install)
 if [ -z "${OPENCLAW_VERSION:-}" ]; then
@@ -343,13 +343,13 @@ fi
 
 mkdir -p "${HOME}/.config" "${HOME}/.config/xfce4"
 cat > "${HOME}/.config/xfce4/helpers.rc" <<'EOH'
-WebBrowser=kasm-browser
+WebBrowser=chromium-kasm
 EOH
 cat > "${HOME}/.config/mimeapps.list" <<'EOH'
 [Default Applications]
-x-scheme-handler/http=kasm-browser.desktop
-x-scheme-handler/https=kasm-browser.desktop
-text/html=kasm-browser.desktop
+x-scheme-handler/http=chromium-kasm.desktop
+x-scheme-handler/https=chromium-kasm.desktop
+text/html=chromium-kasm.desktop
 EOH
 mkdir -p "${HOME}/.config/autostart"
 
@@ -450,7 +450,7 @@ if ! pgrep -u "$(id -u)" -f "xfce4-session" >/dev/null 2>&1; then
 fi
 
 if command -v xdg-settings >/dev/null 2>&1; then
-  DISPLAY="${DISPLAY}" xdg-settings set default-web-browser kasm-browser.desktop >/dev/null 2>&1 || true
+  DISPLAY="${DISPLAY}" xdg-settings set default-web-browser chromium-kasm.desktop >/dev/null 2>&1 || true
 fi
 
 if [[ "$#" -gt 0 ]]; then
