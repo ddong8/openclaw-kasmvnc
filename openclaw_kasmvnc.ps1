@@ -197,6 +197,7 @@ RUN apt-get update \
     fcitx5-frontend-gtk3 \
     fcitx5-frontend-qt5 \
     fcitx5-config-qt \
+    im-config \
     libdatetime-perl \
     libegl1 \
     libglu1-mesa \
@@ -282,6 +283,9 @@ RUN sed -i 's/\r$//' /usr/local/bin/systemctl /usr/local/bin/openclaw-kasmvnc-en
   && usermod -a -G ssl-cert,docker node \
   && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+# Register Fcitx5 as the system default input method framework
+RUN im-config -n fcitx5
+
 USER node
 
 EXPOSE 18789 18790 8443 8444
@@ -344,6 +348,21 @@ x-scheme-handler/https=chromium-kasm.desktop
 text/html=chromium-kasm.desktop
 EOH
 mkdir -p "${HOME}/.config/autostart"
+
+# Register Fcitx5 for this user's X session
+cat > "${HOME}/.xinputrc" <<'EOH'
+run_im fcitx5
+EOH
+
+# Fcitx5 XFCE autostart entry
+cat > "${HOME}/.config/autostart/fcitx5.desktop" <<'EOH'
+[Desktop Entry]
+Type=Application
+Name=Fcitx5
+Exec=fcitx5 -d --replace
+Terminal=false
+X-GNOME-Autostart-enabled=true
+EOH
 
 # Configure Fcitx5 profile: set Rime as the default input method
 mkdir -p "${HOME}/.config/fcitx5"
