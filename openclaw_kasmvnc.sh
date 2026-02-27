@@ -594,6 +594,9 @@ if command -v xdg-settings >/dev/null 2>&1; then
   DISPLAY="${DISPLAY}" xdg-settings set default-web-browser chromium-kasm.desktop >/dev/null 2>&1 || true
 fi
 
+# 配置 gateway 允许非 loopback 绑定时的 Host-header 回退（远程访问必需）
+openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
+
 # 执行 CMD 传入的命令（通常是 openclaw gateway），以后台方式运行
 if [[ "$#" -gt 0 ]]; then
   "$@" &

@@ -508,6 +508,8 @@ if command -v xdg-settings >/dev/null 2>&1; then
   DISPLAY="${DISPLAY}" xdg-settings set default-web-browser chromium-kasm.desktop >/dev/null 2>&1 || true
 fi
 
+openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
+
 if [[ "$#" -gt 0 ]]; then
   "$@" &
 fi
