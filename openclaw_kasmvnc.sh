@@ -190,7 +190,6 @@ services:
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      OPENCLAW_NO_RESPAWN: "1"
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       OPENCLAW_KASMVNC_USER: ${OPENCLAW_KASMVNC_USER:-node}
       OPENCLAW_KASMVNC_PASSWORD: ${OPENCLAW_KASMVNC_PASSWORD:-}
@@ -597,10 +596,9 @@ fi
 # 配置 gateway 允许非 loopback 绑定时的 Host-header 回退（远程访问必需）
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 
-# 执行 CMD 传入的命令（通常是 openclaw gateway），以后台方式运行
-if [[ "$#" -gt 0 ]]; then
-  "$@" &
-fi
+# 通过 systemctl shim 启动网关（supervisor 模式，支持自动重启和版本号注入）
+# 不直接运行 CMD 传入的命令，而是走 shim 以确保 OPENCLAW_SERVICE_MARKER 和 OPENCLAW_VERSION 正确设置
+systemctl start openclaw-gateway &
 
 # 保持容器存活（入口进程不退出，VNC 桌面会话才能持续）
 sleep infinity
@@ -624,6 +622,7 @@ set -euo pipefail
 
 # 服务禁用标记文件（用于跟踪 install/uninstall 状态）
 DISABLED_MARKER="/tmp/openclaw-gateway.disabled"
+STOP_MARKER="/tmp/openclaw-gateway.stopped"
 
 # 查找网关进程 PID
 # 使用 lsof 检测监听端口的进程，这是唯一可靠的方法：
@@ -648,25 +647,48 @@ resolve_openclaw_version() {
 }
 
 # 启动网关进程（如果尚未运行）
-# 优先使用 openclaw CLI，回退到 openclaw-gateway 二进制
-# 启动前自动解析并注入 OPENCLAW_VERSION 环境变量，确保前端显示正确版本
-# 启动后轮询最多 15 秒等待端口就绪
+# 以 supervisor 模式运行：设置 OPENCLAW_SERVICE_MARKER 让 gateway 知道有 supervisor 管理，
+# SIGUSR1 重启时 gateway 会 exit(0) 而不是自己 spawn 子进程，
+# 由 supervisor 循环负责重启并注入最新的 OPENCLAW_VERSION。
+# 这解决了 webchat "Update Now" 按钮升级后版本号不更新的问题。
 start_gateway() {
   local pid internal_port
   internal_port="${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789}"
   pid="$(find_gateway_pid || true)"
   if [[ -n "$pid" ]]; then return 0; fi
-  # 从 package.json 读取版本号注入环境变量，供 gateway 的 resolveRuntimeServiceVersion 使用
-  # 这是前端 webchat 显示版本的数据源（通过 initSelfPresence → WebSocket 推送给前端）
-  resolve_openclaw_version
-  if command -v openclaw >/dev/null 2>&1; then
-    nohup openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${internal_port}" >/tmp/openclaw-gateway.log 2>&1 &
-  elif command -v openclaw-gateway >/dev/null 2>&1; then
-    nohup openclaw-gateway --port "${internal_port}" >/tmp/openclaw-gateway.log 2>&1 &
-  else
-    echo "systemctl shim: cannot start gateway (openclaw CLI not found)" >&2
-    return 1
-  fi
+  # 标记为 supervisor 管理模式，gateway 的 SIGUSR1 重启会 exit(0) 而非自行 respawn
+  export OPENCLAW_SERVICE_MARKER=1
+  # 清除 NO_RESPAWN，让 gateway 使用 supervised 模式（exit 后由 supervisor 循环重启）
+  # 而不是 in-process restart（不会重新读取 package.json 版本号）
+  unset OPENCLAW_NO_RESPAWN 2>/dev/null || true
+  rm -f "$STOP_MARKER"
+  # supervisor 循环：gateway 退出后自动重启（带最新版本号）
+  (
+    set +e  # supervisor 循环内关闭 errexit，gateway 退出不应终止循环
+    while true; do
+      resolve_openclaw_version
+      if command -v openclaw >/dev/null 2>&1; then
+        openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
+      elif command -v openclaw-gateway >/dev/null 2>&1; then
+        openclaw-gateway --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
+      else
+        echo "systemctl shim: cannot start gateway (openclaw CLI not found)" >&2
+        break
+      fi
+      rc=$?
+      [[ -f "$STOP_MARKER" ]] && break
+      # exit 0 = 正常重启（SIGUSR1 supervised），短暂等待后重启
+      # 非零退出 = 异常崩溃，等待更长时间后重试
+      if [[ $rc -eq 0 ]]; then
+        echo "systemctl shim: gateway exited (supervised restart), restarting..." >&2
+        sleep 1
+      else
+        echo "systemctl shim: gateway crashed (exit $rc), restarting in 3s..." >&2
+        sleep 3
+      fi
+    done
+  ) &
+  # 等待端口就绪
   for _ in $(seq 1 60); do
     pid="$(find_gateway_pid || true)"
     [[ -n "$pid" ]] && return 0
@@ -708,18 +730,16 @@ case "$action" in
     [[ -n "$pid" ]] && { echo "active"; exit 0; } || { echo "inactive"; exit 3; } ;;
   start)
     # 启动网关并清除禁用标记
-    rm -f "$DISABLED_MARKER"
+    rm -f "$DISABLED_MARKER" "$STOP_MARKER"
     start_gateway; exit $? ;;
   restart)
-    # 重启网关：完整的 stop → start 流程
-    # 不使用 SIGUSR1 热重启，因为 Node.js 进程内热重启不会重新加载磁盘上的新模块，
-    # 导致 openclaw update 后版本不生效。完整重启虽然端口会短暂不可用，但能确保加载最新代码。
-    rm -f "$DISABLED_MARKER"
+    # 重启网关：先让 supervisor 循环停止，杀掉旧进程，再启动新的 supervisor
     pid=$(find_gateway_pid || true)
     if [[ -z "$pid" ]]; then
+      rm -f "$DISABLED_MARKER"
       start_gateway; exit $?
     fi
-    # 先优雅停止旧进程
+    touch "$STOP_MARKER"
     kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then break; fi
@@ -727,10 +747,11 @@ case "$action" in
     done
     kill -KILL "$pid" 2>/dev/null || true
     sleep 0.5
-    # 启动新进程（从磁盘加载最新代码）
+    rm -f "$DISABLED_MARKER"
     start_gateway; exit $? ;;
   stop)
-    # 停止网关：发送 SIGTERM，等待最多 15 秒，超时则 SIGKILL 强杀
+    # 停止网关和 supervisor 循环（不影响 is-enabled 状态）
+    touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
     [[ -z "$pid" ]] && exit 0
     kill -TERM "$pid" 2>/dev/null || exit $?

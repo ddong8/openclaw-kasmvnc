@@ -133,7 +133,6 @@ services:
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      OPENCLAW_NO_RESPAWN: "1"
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       OPENCLAW_KASMVNC_USER: ${OPENCLAW_KASMVNC_USER:-node}
       OPENCLAW_KASMVNC_PASSWORD: ${OPENCLAW_KASMVNC_PASSWORD:-}
@@ -510,9 +509,7 @@ fi
 
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 
-if [[ "$#" -gt 0 ]]; then
-  "$@" &
-fi
+systemctl start openclaw-gateway &
 
 sleep infinity
 '@ | ForEach-Object { Set-UnixContent -Path (Join-Path $InstallDir "scripts\docker\kasmvnc-startup.sh") -Value $_ }
@@ -533,6 +530,7 @@ sleep infinity
 set -euo pipefail
 
 DISABLED_MARKER="/tmp/openclaw-gateway.disabled"
+STOP_MARKER="/tmp/openclaw-gateway.stopped"
 
 find_gateway_pid() {
   local pid
@@ -559,16 +557,32 @@ start_gateway() {
   internal_port="${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789}"
   pid="$(find_gateway_pid || true)"
   if [[ -n "$pid" ]]; then return 0; fi
-  # 注入版本号环境变量，供 gateway 前端显示
-  resolve_openclaw_version
-  if command -v openclaw >/dev/null 2>&1; then
-    nohup openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${internal_port}" >/tmp/openclaw-gateway.log 2>&1 &
-  elif command -v openclaw-gateway >/dev/null 2>&1; then
-    nohup openclaw-gateway --port "${internal_port}" >/tmp/openclaw-gateway.log 2>&1 &
-  else
-    echo "systemctl shim: cannot start gateway (openclaw CLI not found)" >&2
-    return 1
-  fi
+  export OPENCLAW_SERVICE_MARKER=1
+  unset OPENCLAW_NO_RESPAWN 2>/dev/null || true
+  rm -f "$STOP_MARKER"
+  (
+    set +e
+    while true; do
+      resolve_openclaw_version
+      if command -v openclaw >/dev/null 2>&1; then
+        openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
+      elif command -v openclaw-gateway >/dev/null 2>&1; then
+        openclaw-gateway --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
+      else
+        echo "systemctl shim: cannot start gateway (openclaw CLI not found)" >&2
+        break
+      fi
+      rc=$?
+      [[ -f "$STOP_MARKER" ]] && break
+      if [[ $rc -eq 0 ]]; then
+        echo "systemctl shim: gateway exited (supervised restart), restarting..." >&2
+        sleep 1
+      else
+        echo "systemctl shim: gateway crashed (exit $rc), restarting in 3s..." >&2
+        sleep 3
+      fi
+    done
+  ) &
   for _ in $(seq 1 60); do
     pid="$(find_gateway_pid || true)"
     [[ -n "$pid" ]] && return 0
@@ -604,18 +618,15 @@ case "$action" in
     pid=$(find_gateway_pid || true)
     [[ -n "$pid" ]] && { echo "active"; exit 0; } || { echo "inactive"; exit 3; } ;;
   start)
-    rm -f "$DISABLED_MARKER"
+    rm -f "$DISABLED_MARKER" "$STOP_MARKER"
     start_gateway; exit $? ;;
   restart)
-    # 重启网关：完整的 stop → start 流程
-    # 不使用 SIGUSR1 热重启，因为 Node.js 进程内热重启不会重新加载磁盘上的新模块，
-    # 导致 openclaw update 后版本不生效。完整重启虽然端口会短暂不可用，但能确保加载最新代码。
-    rm -f "$DISABLED_MARKER"
     pid=$(find_gateway_pid || true)
     if [[ -z "$pid" ]]; then
+      rm -f "$DISABLED_MARKER"
       start_gateway; exit $?
     fi
-    # 先优雅停止旧进程
+    touch "$STOP_MARKER"
     kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then break; fi
@@ -623,9 +634,10 @@ case "$action" in
     done
     kill -KILL "$pid" 2>/dev/null || true
     sleep 0.5
-    # 启动新进程（从磁盘加载最新代码）
+    rm -f "$DISABLED_MARKER"
     start_gateway; exit $? ;;
   stop)
+    touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
     [[ -z "$pid" ]] && exit 0
     kill -TERM "$pid" 2>/dev/null || exit $?
