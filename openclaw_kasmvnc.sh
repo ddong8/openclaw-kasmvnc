@@ -639,7 +639,6 @@ find_gateway_pid() {
 # gateway 的 resolveRuntimeServiceVersion() 会读取 OPENCLAW_VERSION 环境变量，
 # 通过 initSelfPresence() 推送给前端 webchat 显示
 resolve_openclaw_version() {
-  if [[ -n "${OPENCLAW_VERSION:-}" ]]; then return; fi
   local ver
   ver="$(node -p "require('/usr/local/lib/node_modules/openclaw/package.json').version" 2>/dev/null || true)"
   if [[ -n "$ver" ]]; then export OPENCLAW_VERSION="$ver"; fi
