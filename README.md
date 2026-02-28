@@ -209,11 +209,7 @@ openclaw gateway status --probe   # 查看状态
 
 ## 已知问题
 
-### 1. `pkill -f chromium` 与 VNC 断线（已修复）
-
-KasmVNC 默认的 `DLP_ClipTypes` 含 `chromium/x-web-custom-data`，导致 `pkill -f chromium` 误杀 Xvnc。已通过覆写 `kasmvnc.yaml` 修复。旧版本执行 `upgrade` 即可获取修复。
-
-### 2. 执行 `openclaw update` 时 VNC 短暂闪断
+### 执行 `openclaw update` 时 VNC 短暂闪断
 
 `npm install` 解压依赖时 CPU/IO 占用极高，可能导致 KasmVNC WebSocket 心跳超时。这是资源抢占引起的假死，完成后自动恢复。建议在宿主机资源充裕时执行 `upgrade`。
 
@@ -238,32 +234,28 @@ KasmVNC 默认的 `DLP_ClipTypes` 含 `chromium/x-web-custom-data`，导致 `pki
 
 依次尝试：`restart` → `status` → `logs --tail 200` → `upgrade`。
 
-### 5. 桌面浏览器图标打不开
-
-先 `upgrade`，再 `restart`。仍异常则 `logs --tail 400` 检查报错。
-
-### 6. 容器反复重启
+### 4. 容器反复重启
 
 常见原因：`.env` 缺参数、目录权限异常、端口冲突。重新 `install` 或更换端口。
 
-### 7. macOS 上 `chown: Operation not permitted`
+### 5. macOS 上 `chown: Operation not permitted`
 
 macOS M 系列部分挂载路径会出现此提示，容器运行正常则可安全忽略。
 
-### 8. 为什么用 Chromium 而不是 Chrome？
+### 6. 为什么用 Chromium 而不是 Chrome？
 
 1. **多架构兼容** — Google 未提供 ARM64 Chrome，Chromium 是唯一同时适配 x86_64 和 arm64 的方案
 2. **版权合规** — Chrome 含闭源插件（DRM 等），不适合打包到公有镜像
 3. **依赖纯净** — `apt install` 的 Chromium 与系统库无缝兼容，无需第三方源
 
-### 9. 升级后中文输入法不是默认首选
+### 7. 升级后中文输入法不是默认首选
 
 旧版配置持久化导致。VNC 终端执行后断开重连：
 ```bash
 rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml ~/.config/dconf
 ```
 
-### 10. 日志太多
+### 8. 日志太多
 
 用 `logs --tail 200` 看最近日志，`logs --tail 50` 快速定位报错。
 
