@@ -1,4 +1,4 @@
-# openclaw_kasmvnc
+# openclaw-kasmvnc
 
 一键部署 OpenClaw + KasmVNC（支持 Windows / macOS / Linux）。
 
@@ -6,12 +6,12 @@
 
 Windows:
 ```powershell
-irm https://raw.githubusercontent.com/ddong8/openclaw_kasmvnc/main/openclaw_kasmvnc.ps1 | iex
+irm https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.ps1 | iex
 ```
 
 macOS / Linux:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw_kasmvnc/main/openclaw_kasmvnc.sh | bash -s -- install
+curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.sh | bash -s -- install
 ```
 
 安装后访问：
@@ -28,8 +28,8 @@ curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw_kasmvnc/main/opencl
 
 ## 文件说明
 
-- `openclaw_kasmvnc.sh`：macOS/Linux 统一管理脚本
-- `openclaw_kasmvnc.ps1`：Windows 统一管理脚本
+- `openclaw-kasmvnc.sh`：macOS/Linux 统一管理脚本
+- `openclaw-kasmvnc.ps1`：Windows 统一管理脚本
 
 说明：脚本会自动生成 `docker-compose.yml`、`Dockerfile.kasmvnc`、容器入口脚本 `kasmvnc-startup.sh` 和 systemctl shim 脚本，再执行容器构建与启动。
 构建过程中会通过 `npm install -g openclaw@latest` 将 OpenClaw 全局安装到容器内。
@@ -67,78 +67,78 @@ curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw_kasmvnc/main/opencl
 
 安装：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command install
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install
 ```
 
 卸载（仅停服务）：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command uninstall
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command uninstall
 ```
 
 卸载并删除安装目录：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command uninstall -Purge
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command uninstall -Purge
 ```
 
 重启：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command restart
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command restart
 ```
 
 升级：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command upgrade
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command upgrade
 ```
 
 状态：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command status
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command status
 ```
 
 日志：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command logs -Tail 200
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command logs -Tail 200
 ```
 
 ### macOS / Linux
 
 ```bash
-chmod +x ./openclaw_kasmvnc.sh
+chmod +x ./openclaw-kasmvnc.sh
 ```
 
 安装：
 ```bash
-./openclaw_kasmvnc.sh install
+./openclaw-kasmvnc.sh install
 ```
 
 卸载（仅停服务）：
 ```bash
-./openclaw_kasmvnc.sh uninstall
+./openclaw-kasmvnc.sh uninstall
 ```
 
 卸载并删除安装目录：
 ```bash
-./openclaw_kasmvnc.sh uninstall --purge
+./openclaw-kasmvnc.sh uninstall --purge
 ```
 
 重启：
 ```bash
-./openclaw_kasmvnc.sh restart
+./openclaw-kasmvnc.sh restart
 ```
 
 升级（无缓存极速更新版本）：
 ```bash
-./openclaw_kasmvnc.sh upgrade
+./openclaw-kasmvnc.sh upgrade
 ```
 
 状态：
 ```bash
-./openclaw_kasmvnc.sh status
+./openclaw-kasmvnc.sh status
 ```
 
 日志：
 ```bash
-./openclaw_kasmvnc.sh logs --tail 200
+./openclaw-kasmvnc.sh logs --tail 200
 ```
 
 ## 安装后访问地址
@@ -190,7 +190,7 @@ chmod +x ./openclaw_kasmvnc.sh
 
 示例（Windows）：
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 `
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 `
   -Command install `
   -InstallDir "D:\openclaw-deploy" `
   -GatewayPort "18789" `
@@ -199,7 +199,7 @@ powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 `
 
 示例（macOS/Linux）：
 ```bash
-./openclaw_kasmvnc.sh install \
+./openclaw-kasmvnc.sh install \
   --install-dir "$HOME/openclaw-deploy" \
   --gateway-port 18789 \
   --https-port 8443
@@ -212,10 +212,10 @@ powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 `
 
 ```bash
 # Linux/macOS
-./openclaw_kasmvnc.sh install --proxy http://192.168.1.131:10808
+./openclaw-kasmvnc.sh install --proxy http://192.168.1.131:10808
 
 # Windows
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command install -Proxy "http://192.168.1.131:10808"
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install -Proxy "http://192.168.1.131:10808"
 ```
 
 安装后也可以手动编辑 `.env` 文件开关代理：
@@ -235,11 +235,11 @@ OPENCLAW_HTTP_PROXY=http://192.168.1.131:10808
 
 ```bash
 # Linux/macOS
-OPENCLAW_KASMVNC_VERSION=1.4.0 ./openclaw_kasmvnc.sh install
+OPENCLAW_KASMVNC_VERSION=1.4.0 ./openclaw-kasmvnc.sh install
 
 # Windows
 $env:OPENCLAW_KASMVNC_VERSION="1.4.0"
-powershell -ExecutionPolicy Bypass -File .\openclaw_kasmvnc.ps1 -Command install
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install
 ```
 
 ## 内置优化

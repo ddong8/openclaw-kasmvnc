@@ -1,5 +1,5 @@
 # ============================================================================
-# openclaw_kasmvnc.ps1 — OpenClaw + KasmVNC 一键部署管理脚本（Windows）
+# openclaw-kasmvnc.ps1 — OpenClaw + KasmVNC 一键部署管理脚本（Windows）
 #
 # 功能概述：
 #   自动生成 Dockerfile、docker-compose.yml、KasmVNC 启动脚本和 systemctl shim，
@@ -688,7 +688,7 @@ function Assert-GatewayRunning {
 # 检查安装目录是否存在，不存在则提示用户先执行 install
 function Require-InstallDir {
   if (-not (Test-Path $InstallDir)) {
-    throw "Install directory not found: $InstallDir. Run '.\openclaw_kasmvnc.ps1 -Command install' first."
+    throw "Install directory not found: $InstallDir. Run '.\openclaw-kasmvnc.ps1 -Command install' first."
   }
 }
 
