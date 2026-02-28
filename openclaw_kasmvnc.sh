@@ -596,12 +596,45 @@ fi
 # 配置 gateway 允许非 loopback 绑定时的 Host-header 回退（远程访问必需）
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 
-# 通过 systemctl shim 启动网关（supervisor 模式，支持自动重启和版本号注入）
-# 不直接运行 CMD 传入的命令，而是走 shim 以确保 OPENCLAW_SERVICE_MARKER 和 OPENCLAW_VERSION 正确设置
-systemctl start openclaw-gateway &
+# 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
+# 设置环境变量让 gateway 知道有 supervisor 管理
+export OPENCLAW_SERVICE_MARKER=1
+unset OPENCLAW_NO_RESPAWN 2>/dev/null || true
 
-# 保持容器存活（入口进程不退出，VNC 桌面会话才能持续）
-sleep infinity
+# Supervisor 循环：gateway 退出后自动重启（带最新版本号）
+# 注意：不会因为 STOP_MARKER 而退出循环，只是暂停启动
+while true; do
+  # 检查停止标记：如果存在则等待它被清除
+  while [[ -f /tmp/openclaw-gateway.stopped ]]; do
+    sleep 1
+  done
+
+  # 从 package.json 读取版本号并导出
+  ver="$(node -p "require('/usr/local/lib/node_modules/openclaw/package.json').version" 2>/dev/null || true)"
+  if [[ -n "$ver" ]]; then export OPENCLAW_VERSION="$ver"; fi
+
+  # 启动 gateway（前台运行）
+  if command -v openclaw >/dev/null 2>&1; then
+    openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port 18789 >>/tmp/openclaw-gateway.log 2>&1
+  elif command -v openclaw-gateway >/dev/null 2>&1; then
+    openclaw-gateway --port 18789 >>/tmp/openclaw-gateway.log 2>&1
+  else
+    echo "kasmvnc-startup: cannot start gateway (openclaw CLI not found)" >&2
+    sleep infinity
+  fi
+
+  rc=$?
+
+  # exit 0 = 正常重启（SIGUSR1 supervised），短暂等待后重启
+  # 非零退出 = 异常崩溃，等待更长时间后重试
+  if [[ $rc -eq 0 ]]; then
+    echo "kasmvnc-startup: gateway exited (supervised restart), restarting..." >&2
+    sleep 1
+  else
+    echo "kasmvnc-startup: gateway crashed (exit $rc), restarting in 3s..." >&2
+    sleep 3
+  fi
+done
 EOF
   chmod +x "$d/scripts/docker/kasmvnc-startup.sh"
 
@@ -646,55 +679,16 @@ resolve_openclaw_version() {
   if [[ -n "$ver" ]]; then export OPENCLAW_VERSION="$ver"; fi
 }
 
-# 启动网关进程（如果尚未运行）
-# 以 supervisor 模式运行：设置 OPENCLAW_SERVICE_MARKER 让 gateway 知道有 supervisor 管理，
-# SIGUSR1 重启时 gateway 会 exit(0) 而不是自己 spawn 子进程，
-# 由 supervisor 循环负责重启并注入最新的 OPENCLAW_VERSION。
-# 这解决了 webchat "Update Now" 按钮升级后版本号不更新的问题。
-start_gateway() {
-  local pid internal_port
-  internal_port="${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789}"
-  pid="$(find_gateway_pid || true)"
-  if [[ -n "$pid" ]]; then return 0; fi
-  # 标记为 supervisor 管理模式，gateway 的 SIGUSR1 重启会 exit(0) 而非自行 respawn
-  export OPENCLAW_SERVICE_MARKER=1
-  # 清除 NO_RESPAWN，让 gateway 使用 supervised 模式（exit 后由 supervisor 循环重启）
-  # 而不是 in-process restart（不会重新读取 package.json 版本号）
-  unset OPENCLAW_NO_RESPAWN 2>/dev/null || true
-  rm -f "$STOP_MARKER"
-  # supervisor 循环：gateway 退出后自动重启（带最新版本号）
-  (
-    set +e  # supervisor 循环内关闭 errexit，gateway 退出不应终止循环
-    while true; do
-      resolve_openclaw_version
-      if command -v openclaw >/dev/null 2>&1; then
-        openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
-      elif command -v openclaw-gateway >/dev/null 2>&1; then
-        openclaw-gateway --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
-      else
-        echo "systemctl shim: cannot start gateway (openclaw CLI not found)" >&2
-        break
-      fi
-      rc=$?
-      [[ -f "$STOP_MARKER" ]] && break
-      # exit 0 = 正常重启（SIGUSR1 supervised），短暂等待后重启
-      # 非零退出 = 异常崩溃，等待更长时间后重试
-      if [[ $rc -eq 0 ]]; then
-        echo "systemctl shim: gateway exited (supervised restart), restarting..." >&2
-        sleep 1
-      else
-        echo "systemctl shim: gateway crashed (exit $rc), restarting in 3s..." >&2
-        sleep 3
-      fi
-    done
-  ) &
-  # 等待端口就绪
-  for _ in $(seq 1 60); do
+# 等待网关进程启动就绪（检查端口监听）
+# kasmvnc-startup.sh 中的主 supervisor 负责实际启动，这里只等待端口就绪
+wait_gateway_ready() {
+  local pid
+  for _ in $(seq 1 120); do
     pid="$(find_gateway_pid || true)"
     [[ -n "$pid" ]] && return 0
-    sleep 0.25
+    sleep 0.5
   done
-  echo "systemctl shim: gateway failed to start" >&2
+  echo "systemctl shim: gateway failed to start (timeout waiting for port)" >&2
   return 1
 }
 
@@ -729,17 +723,21 @@ case "$action" in
     pid=$(find_gateway_pid || true)
     [[ -n "$pid" ]] && { echo "active"; exit 0; } || { echo "inactive"; exit 3; } ;;
   start)
-    # 启动网关并清除禁用标记
+    # 启动网关：清除停止和禁用标记，让主 supervisor 继续运行
+    # 注意：主 supervisor 由 kasmvnc-startup.sh 启动，这里只是解除停止状态
     rm -f "$DISABLED_MARKER" "$STOP_MARKER"
-    start_gateway; exit $? ;;
+    wait_gateway_ready; exit $? ;;
   restart)
-    # 重启网关：先让 supervisor 循环停止，杀掉旧进程，再启动新的 supervisor
+    # 重启网关：杀掉当前 gateway，主 supervisor 会自动重启
     pid=$(find_gateway_pid || true)
     if [[ -z "$pid" ]]; then
-      rm -f "$DISABLED_MARKER"
-      start_gateway; exit $?
+      # 如果没有运行，清除标记让主 supervisor 启动
+      rm -f "$DISABLED_MARKER" "$STOP_MARKER"
+      wait_gateway_ready; exit $?
     fi
-    touch "$STOP_MARKER"
+    # 确保没有 STOP_MARKER（让主 supervisor 能自动重启）
+    rm -f "$DISABLED_MARKER" "$STOP_MARKER"
+    # 杀掉当前 gateway 进程
     kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then break; fi
@@ -747,8 +745,8 @@ case "$action" in
     done
     kill -KILL "$pid" 2>/dev/null || true
     sleep 0.5
-    rm -f "$DISABLED_MARKER"
-    start_gateway; exit $? ;;
+    # 主 supervisor 会自动重启 gateway
+    wait_gateway_ready; exit $? ;;
   stop)
     # 停止网关和 supervisor 循环（不影响 is-enabled 状态）
     touch "$STOP_MARKER"
@@ -790,7 +788,7 @@ assert_gateway_running() {
   fi
   # Also verify the gateway process inside the container is alive
   local retries=0
-  while [[ $retries -lt 15 ]]; do
+  while [[ $retries -lt 60 ]]; do
     if docker exec "$cid" sh -c 'systemctl is-active openclaw-gateway' >/dev/null 2>&1; then
       return 0
     fi

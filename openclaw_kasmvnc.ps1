@@ -509,9 +509,45 @@ fi
 
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 
-systemctl start openclaw-gateway &
+# 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
+# 设置环境变量让 gateway 知道有 supervisor 管理
+export OPENCLAW_SERVICE_MARKER=1
+unset OPENCLAW_NO_RESPAWN 2>/dev/null || true
 
-sleep infinity
+# Supervisor 循环：gateway 退出后自动重启（带最新版本号）
+# 注意：不会因为 STOP_MARKER 而退出循环，只是暂停启动
+while true; do
+  # 检查停止标记：如果存在则等待它被清除
+  while [[ -f /tmp/openclaw-gateway.stopped ]]; do
+    sleep 1
+  done
+
+  # 从 package.json 读取版本号并导出
+  ver="$(node -p "require('/usr/local/lib/node_modules/openclaw/package.json').version" 2>/dev/null || true)"
+  if [[ -n "$ver" ]]; then export OPENCLAW_VERSION="$ver"; fi
+
+  # 启动 gateway（前台运行）
+  if command -v openclaw >/dev/null 2>&1; then
+    openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port 18789 >>/tmp/openclaw-gateway.log 2>&1
+  elif command -v openclaw-gateway >/dev/null 2>&1; then
+    openclaw-gateway --port 18789 >>/tmp/openclaw-gateway.log 2>&1
+  else
+    echo "kasmvnc-startup: cannot start gateway (openclaw CLI not found)" >&2
+    sleep infinity
+  fi
+
+  rc=$?
+
+  # exit 0 = 正常重启（SIGUSR1 supervised），短暂等待后重启
+  # 非零退出 = 异常崩溃，等待更长时间后重试
+  if [[ $rc -eq 0 ]]; then
+    echo "kasmvnc-startup: gateway exited (supervised restart), restarting..." >&2
+    sleep 1
+  else
+    echo "kasmvnc-startup: gateway crashed (exit $rc), restarting in 3s..." >&2
+    sleep 3
+  fi
+done
 '@ | ForEach-Object { Set-UnixContent -Path (Join-Path $InstallDir "scripts\docker\kasmvnc-startup.sh") -Value $_ }
 
   # ── 生成 systemctl-shim.sh（systemctl 模拟脚本）──
@@ -552,43 +588,14 @@ resolve_openclaw_version() {
   if [[ -n "$ver" ]]; then export OPENCLAW_VERSION="$ver"; fi
 }
 
-start_gateway() {
-  local pid internal_port
-  internal_port="${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789}"
-  pid="$(find_gateway_pid || true)"
-  if [[ -n "$pid" ]]; then return 0; fi
-  export OPENCLAW_SERVICE_MARKER=1
-  unset OPENCLAW_NO_RESPAWN 2>/dev/null || true
-  rm -f "$STOP_MARKER"
-  (
-    set +e
-    while true; do
-      resolve_openclaw_version
-      if command -v openclaw >/dev/null 2>&1; then
-        openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
-      elif command -v openclaw-gateway >/dev/null 2>&1; then
-        openclaw-gateway --port "${internal_port}" >>/tmp/openclaw-gateway.log 2>&1
-      else
-        echo "systemctl shim: cannot start gateway (openclaw CLI not found)" >&2
-        break
-      fi
-      rc=$?
-      [[ -f "$STOP_MARKER" ]] && break
-      if [[ $rc -eq 0 ]]; then
-        echo "systemctl shim: gateway exited (supervised restart), restarting..." >&2
-        sleep 1
-      else
-        echo "systemctl shim: gateway crashed (exit $rc), restarting in 3s..." >&2
-        sleep 3
-      fi
-    done
-  ) &
-  for _ in $(seq 1 60); do
+wait_gateway_ready() {
+  local pid
+  for _ in $(seq 1 120); do
     pid="$(find_gateway_pid || true)"
     [[ -n "$pid" ]] && return 0
-    sleep 0.25
+    sleep 0.5
   done
-  echo "systemctl shim: gateway failed to start" >&2
+  echo "systemctl shim: gateway failed to start (timeout waiting for port)" >&2
   return 1
 }
 
@@ -619,14 +626,14 @@ case "$action" in
     [[ -n "$pid" ]] && { echo "active"; exit 0; } || { echo "inactive"; exit 3; } ;;
   start)
     rm -f "$DISABLED_MARKER" "$STOP_MARKER"
-    start_gateway; exit $? ;;
+    wait_gateway_ready; exit $? ;;
   restart)
     pid=$(find_gateway_pid || true)
     if [[ -z "$pid" ]]; then
-      rm -f "$DISABLED_MARKER"
-      start_gateway; exit $?
+      rm -f "$DISABLED_MARKER" "$STOP_MARKER"
+      wait_gateway_ready; exit $?
     fi
-    touch "$STOP_MARKER"
+    rm -f "$DISABLED_MARKER" "$STOP_MARKER"
     kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then break; fi
@@ -634,8 +641,7 @@ case "$action" in
     done
     kill -KILL "$pid" 2>/dev/null || true
     sleep 0.5
-    rm -f "$DISABLED_MARKER"
-    start_gateway; exit $? ;;
+    wait_gateway_ready; exit $? ;;
   stop)
     touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
@@ -671,7 +677,7 @@ function Assert-GatewayRunning {
     throw "openclaw-gateway is not running (container: $cid)."
   }
   # Also verify the gateway process inside the container is alive
-  for ($i = 0; $i -lt 15; $i++) {
+  for ($i = 0; $i -lt 60; $i++) {
     $result = & docker exec $cid sh -c "systemctl is-active openclaw-gateway" 2>$null
     if ($LASTEXITCODE -eq 0) { return }
     Start-Sleep -Seconds 2

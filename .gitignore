@@ -8,3 +8,6 @@
 # Temp
 *.tmp
 *.bak
+
+# Claude
+CLAUDE.md
