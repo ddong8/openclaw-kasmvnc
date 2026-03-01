@@ -340,6 +340,7 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
     <h2>常见问题</h2>
   </div>
   <div class="faq-list">
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">构建失败或需要清除缓存？<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">使用 <code>--no-cache</code> 参数禁用 Docker 构建缓存：<code>./openclaw-kasmvnc-zh.sh install --no-cache</code>（Windows 用 <code>-NoCache</code>）。</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">端口被占用怎么办？<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">安装时指定其他端口：<code>--gateway-port 28789 --https-port 9443</code>（Windows 用 <code>-GatewayPort 28789 -HttpsPort 9443</code>），然后重新 install。</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">KasmVNC 提示 HTTPS 证书不安全？<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">默认使用容器自签名证书，属于正常现象。在浏览器选择"继续访问"即可，或自行配置反向代理（Nginx / Caddy）。</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">中文输入法没有激活？<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">旧卷配置冲突导致。在宿主机执行 <code>upgrade</code>，然后在 VNC 终端执行 <code>rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml</code>，最后从桌面菜单 Log Out 并刷新页面重新进入。</div></div></div>

@@ -26,6 +26,7 @@ param(
   [string]$GatewayPort = "18789",         # OpenClaw 网关宿主机端口
   [int]$Tail = 200,                       # logs 命令默认显示行数
   [string]$Proxy = "",                    # 容器内 HTTP 代理地址
+  [switch]$NoCache,                       # 禁用 Docker 构建缓存
   [switch]$Purge                          # 卸载时是否删除安装目录
 )
 
@@ -744,7 +745,12 @@ function Install-Command {
       Upsert-EnvLine -FilePath ".env" -Key "OPENCLAW_HTTP_PROXY" -Value $Proxy
     }
 
-    Invoke-Compose -ComposeArgs @("up", "-d", "--build", "openclaw-gateway")
+    if ($NoCache) {
+      Invoke-Compose -ComposeArgs @("build", "--no-cache", "openclaw-gateway")
+      Invoke-Compose -ComposeArgs @("up", "-d", "openclaw-gateway")
+    } else {
+      Invoke-Compose -ComposeArgs @("up", "-d", "--build", "openclaw-gateway")
+    }
     Assert-GatewayRunning
   }
   finally {

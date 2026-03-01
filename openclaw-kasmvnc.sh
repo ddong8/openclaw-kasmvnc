@@ -29,6 +29,7 @@ KASM_PASSWORD="${KASM_PASSWORD:-}"
 HTTPS_PORT="${HTTPS_PORT:-8443}"
 GATEWAY_PORT="${GATEWAY_PORT:-18789}"
 PURGE=0
+NO_CACHE=0                                             # Disable Docker build cache
 TAIL_LINES="${TAIL_LINES:-200}"
 HTTP_PROXY_URL="${HTTP_PROXY_URL:-}"
 
@@ -54,6 +55,7 @@ Options:
   --gateway-port <port>  OpenClaw gateway host port (default: 18789)
   --proxy <url>          HTTP proxy for container (default: none)
   --tail <n>             Log lines for logs command (default: 200)
+  --no-cache             Disable Docker build cache (useful for troubleshooting)
   --purge                For uninstall: delete install dir
   -h, --help             Show this help
 EOF
@@ -125,6 +127,10 @@ parse_args() {
       --proxy)
         HTTP_PROXY_URL="${2:?missing value for --proxy}"
         shift 2
+        ;;
+      --no-cache)
+        NO_CACHE=1
+        shift
         ;;
       --purge)
         PURGE=1
@@ -691,7 +697,12 @@ install_cmd() {
     if [[ -n "$HTTP_PROXY_URL" ]]; then
       upsert_env_line .env OPENCLAW_HTTP_PROXY "$HTTP_PROXY_URL"
     fi
-    compose_cmd up -d --build openclaw-gateway
+    if [[ "$NO_CACHE" -eq 1 ]]; then
+      compose_cmd build --no-cache openclaw-gateway
+      compose_cmd up -d openclaw-gateway
+    else
+      compose_cmd up -d --build openclaw-gateway
+    fi
     assert_gateway_running
   )
 

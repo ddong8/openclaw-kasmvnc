@@ -25,6 +25,7 @@ param(
   [string]$GatewayPort = "18789",
   [int]$Tail = 200,
   [string]$Proxy = "",
+  [switch]$NoCache,
   [switch]$Purge
 )
 
@@ -616,7 +617,12 @@ function Install-Command {
       Upsert-EnvLine -FilePath ".env" -Key "OPENCLAW_HTTP_PROXY" -Value $Proxy
     }
 
-    Invoke-Compose -ComposeArgs @("up", "-d", "--build", "openclaw-gateway")
+    if ($NoCache) {
+      Invoke-Compose -ComposeArgs @("build", "--no-cache", "openclaw-gateway")
+      Invoke-Compose -ComposeArgs @("up", "-d", "openclaw-gateway")
+    } else {
+      Invoke-Compose -ComposeArgs @("up", "-d", "--build", "openclaw-gateway")
+    }
     Assert-GatewayRunning
   }
   finally {
