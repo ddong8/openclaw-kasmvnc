@@ -459,13 +459,28 @@ cat > "${HOME}/.vnc/xstartup" <<'EOH'
 #!/usr/bin/env bash
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
+
+# 启动 D-Bus 会话总线
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
   eval "$(dbus-launch --sh-syntax 2>/dev/null)" || true
   export DBUS_SESSION_BUS_ADDRESS
 fi
+
+# 设置 Fcitx5 输入法环境变量
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS=@im=fcitx
+export INPUT_METHOD=fcitx
+export SDL_IM_MODULE=fcitx
+export GLFW_IM_MODULE=ibus
+
+# 启动 Fcitx5 输入法守护进程
 if command -v fcitx5 >/dev/null 2>&1; then
   fcitx5 -d >/tmp/openclaw-fcitx5.log 2>&1 || true
+  # 等待 Fcitx5 启动
+  sleep 2
 fi
+
 exec startxfce4
 EOH
 chmod +x "${HOME}/.vnc/xstartup"
