@@ -381,7 +381,33 @@ RUN set -eux; \
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libdatetime-timezone-perl \
     libdatetime-perl \
-    libtimedate-perl; \
+    libtimedate-perl \
+    libbsd0 \
+    libfreetype6 \
+    libgbm1 \
+    libgl1 \
+    libgomp1 \
+    libpixman-1-0 \
+    libpng16-16 \
+    libssl3 \
+    libsystemd0 \
+    libunwind8 \
+    libwebp7 \
+    libx11-6 \
+    libxau6 \
+    libxcursor1 \
+    libxdmcp6 \
+    libxext6 \
+    libxfixes3 \
+    libxfont2 \
+    libxrandr2 \
+    libxshmfence1 \
+    libxtst6 \
+    zlib1g \
+    libswitch-perl \
+    libyaml-tiny-perl \
+    libscalar-list-utils-perl \
+    liblist-moreutils-perl; \
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "/tmp/${pkg}"; \
   rm -f "/tmp/${pkg}"; \
   rm -rf /var/lib/apt/lists/*
