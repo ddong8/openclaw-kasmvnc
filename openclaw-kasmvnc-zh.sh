@@ -386,8 +386,9 @@ RUN set -eux; \
 # 安装雾凇拼音（Rime Ice）词库和配置，默认中文模式（ascii_mode reset=0）
 RUN curl -fsSL https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/rime-ice.tar.gz \
   && mkdir -p /home/node/.local/share/fcitx5/rime \
-  && tar xzf /tmp/rime-ice.tar.gz -C /home/node/.local/share/fcitx5/rime/ \
-  && rm -f /tmp/rime-ice.tar.gz \
+  && tar xzf /tmp/rime-ice.tar.gz -C /tmp/ \
+  && cp -r /tmp/rime-ice-main/* /home/node/.local/share/fcitx5/rime/ \
+  && rm -rf /tmp/rime-ice.tar.gz /tmp/rime-ice-main \
   && printf '%s\n' \
     'patch:' \
     '  "switches/@0/reset": 0' \
