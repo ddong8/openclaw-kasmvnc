@@ -4,6 +4,36 @@ One-click deployment for OpenClaw + KasmVNC (Windows / macOS / Linux).
 
 > 🇨🇳 中文版 / Chinese version: [README.md](README.md)
 
+## Key Advantages
+
+### 🔧 Full Lifecycle Management Inside Container
+
+**Solves the core limitation of official OpenClaw Docker deployment:**
+
+In the official OpenClaw Docker setup, the Gateway runs on the host machine, and containers lack systemd, causing:
+- ❌ Cannot run `openclaw gateway restart` inside container
+- ❌ Cannot run `npm install -g openclaw@latest` for hot updates inside container
+- ❌ Must manually restart container after config changes
+
+**This project solves it with systemctl shim:**
+- ✅ Supports `openclaw gateway restart` inside container
+- ✅ Supports `upgrade` command for hot updates (no image rebuild needed)
+- ✅ Complete `install / upgrade / restart / uninstall` lifecycle management
+
+### 👁️ Visual Desktop Environment
+
+**Solves the visibility problem of cloud vendor one-click deployments:**
+
+Cloud vendor OpenClaw deployments typically only provide CLI, making it impossible to:
+- ❌ Watch OpenClaw operate the browser in real-time
+- ❌ Observe Agent task execution with visual feedback
+- ❌ Debug desktop application issues
+
+**This project provides a complete desktop environment:**
+- ✅ Browser-based XFCE desktop (KasmVNC)
+- ✅ Watch OpenClaw operate Chromium in real-time
+- ✅ Full Linux desktop experience
+
 ## Quick Start
 
 Windows:
@@ -25,15 +55,14 @@ After install:
 
 > Token and password are auto-generated on first install. Save them somewhere safe.
 
-## Why KasmVNC + Containers
+## Other Features
 
-- **Browser-based desktop** -- no VNC client needed, just open a browser
 - **Environment isolation** -- OpenClaw, desktop, and all dependencies live inside the container
 - **One-click deploy** -- install, upgrade, and restart via a single script + Compose
 - **Cross-platform** -- identical container behavior on Windows, macOS, and Linux
-- **Security** -- access controlled via port bindings, gateway token, and VNC password
 - **Docker-in-Docker** -- built-in dockerd lets OpenClaw create and manage child containers
 - **GPU auto-detect** -- automatically enables `nvidia` runtime when a host GPU is present
+- **Mass deployment** -- standardized container approach enables large-scale lobster deployments
 
 ## Prerequisites
 

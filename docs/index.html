@@ -190,16 +190,16 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
 <div class="container">
   <div class="section-title">
     <h2>为什么选择 OpenClaw 云桌面</h2>
-    <p>容器化桌面 + OpenClaw + 微信，一条命令搞定</p>
+    <p>解决官方 Docker 方案和云厂商部署的核心痛点</p>
   </div>
   <div class="features-grid">
-    <div class="feature-card"><div class="icon">👁️</div><h3>可视化操作</h3><p>解决云厂商一键部署方案无桌面的痛点，实时查看 OpenClaw 操作过程，支持容器内重启、更新等完整生命周期管理</p></div>
+    <div class="feature-card"><div class="icon">🔧</div><h3>容器内完整生命周期</h3><p>官方 Docker 方案无 systemd 导致无法容器内重启/升级。本项目通过 systemctl shim 完美解决，支持容器内 restart、upgrade 等全生命周期管理</p></div>
+    <div class="feature-card"><div class="icon">👁️</div><h3>可视化桌面环境</h3><p>云厂商一键部署只有命令行，无法观察 Agent 操作。本项目提供完整 XFCE 桌面，实时查看 OpenClaw 操作浏览器过程</p></div>
     <div class="feature-card"><div class="icon">🌐</div><h3>浏览器直连桌面</h3><p>无需安装 VNC 客户端，打开浏览器即可访问完整 Linux 桌面环境</p></div>
     <div class="feature-card"><div class="icon">📦</div><h3>环境隔离</h3><p>OpenClaw、桌面、依赖全部运行在容器内，不污染宿主机系统</p></div>
     <div class="feature-card"><div class="icon">⚡</div><h3>一键部署</h3><p>一条命令完成安装，支持 install / upgrade / restart / uninstall 全生命周期管理</p></div>
     <div class="feature-card"><div class="icon">🦞</div><h3>大规模部署</h3><p>标准化容器方案使大规模部署龙虾成为可能，统一管理多个 OpenClaw 实例</p></div>
     <div class="feature-card"><div class="icon">💻</div><h3>跨平台支持</h3><p>Windows (PowerShell) / macOS / Linux 三平台统一体验，行为一致</p></div>
-    <div class="feature-card"><div class="icon">🎮</div><h3>GPU 自动检测</h3><p>安装时自动识别 NVIDIA GPU，有则启用 nvidia runtime，无则跳过</p></div>
     <div class="feature-card"><div class="icon">🐳</div><h3>Docker-in-Docker</h3><p>容器内内置 dockerd，OpenClaw 可直接创建和管理子容器，无需额外配置</p></div>
   </div>
 </div>

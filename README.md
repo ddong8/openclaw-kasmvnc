@@ -4,6 +4,37 @@
 
 一键部署 OpenClaw + KasmVNC（支持 Windows / macOS / Linux）。
 
+## 核心优势
+
+### 🔧 容器内完整生命周期管理
+
+**解决官方 Docker 方案的核心痛点：**
+
+官方 OpenClaw Docker 部署方案中，Gateway 运行在宿主机上，容器内无 systemd，导致：
+- ❌ 无法在容器内执行 `openclaw gateway restart`
+- ❌ 无法在容器内执行 `npm install -g openclaw@latest` 热更新
+- ❌ 配置变更后需要手动重启容器
+
+**本项目通过 systemctl shim 完美解决：**
+- ✅ 容器内支持 `openclaw gateway restart` 重启网关
+- ✅ 容器内支持 `upgrade` 命令热更新 OpenClaw（无需重建镜像）
+- ✅ 完整的 `install / upgrade / restart / uninstall` 生命周期管理
+
+### 👁️ 可视化桌面环境
+
+**解决云厂商一键部署方案的可见性问题：**
+
+各大云厂商提供的 OpenClaw 一键部署方案通常只有命令行界面，无法：
+- ❌ 实时查看 OpenClaw 操作浏览器的过程
+- ❌ 观察 Agent 执行任务的可视化反馈
+- ❌ 调试桌面应用相关问题
+
+**本项目提供完整桌面环境：**
+- ✅ 浏览器直连 XFCE 桌面（KasmVNC）
+- ✅ 实时观察 OpenClaw 操作 Chromium 浏览器
+- ✅ 支持中文输入法（Fcitx5 + Rime Ice 雾凇拼音）
+- ✅ 完整的 Linux 桌面体验
+
 ## 快速上手
 
 Windows:
@@ -25,15 +56,14 @@ curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/opencl
 
 > 首次安装会自动生成并输出 Token 和密码，请妥善保存。
 
-## 为什么用 KasmVNC + 容器化
+## 其他特性
 
-- **浏览器直连桌面** — 无需本地安装 VNC 客户端，打开浏览器即可访问容器桌面
 - **环境隔离** — OpenClaw、桌面环境、依赖都在容器内，不污染主机系统
 - **一键部署** — 通过脚本和 Compose 一键安装/升级/重启，换机器也可快速复现
 - **跨平台一致** — Windows、macOS、Linux 使用同一套容器行为，排障路径统一
-- **安全可控** — 通过端口、Token、VNC 密码集中管理访问入口
-- **Docker-in-Docker** — 容器内内置 dockerd，OpenClaw 可直接创建和管理子容器，无需额外配置
-- **GPU 自动检测** — 安装时自动识别宿主机 NVIDIA GPU，有则启用 `nvidia` runtime，无则跳过
+- **Docker-in-Docker** — 容器内内置 dockerd，OpenClaw 可直接创建和管理子容器
+- **GPU 自动检测** — 安装时自动识别宿主机 NVIDIA GPU，有则启用 `nvidia` runtime
+- **大规模部署** — 标准化容器方案使大规模部署龙虾成为可能
 
 ## 前置条件
 
