@@ -1,70 +1,70 @@
 # openclaw-kasmvnc
 
-One-click deployment for OpenClaw + KasmVNC (Windows / macOS / Linux).
+🌐 English version: [README-en.md](README-en.md)
 
-> 🇨🇳 中文版 / Chinese version: [README-zh.md](README-zh.md)
+一键部署 OpenClaw + KasmVNC（支持 Windows / macOS / Linux）。
 
-## Quick Start
+## 快速上手
 
 Windows:
 ```powershell
-irm https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.ps1 | iex
+irm https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc-zh.ps1 | iex
 ```
 
 macOS / Linux:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.sh | bash -s -- install
+curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc-zh.sh | bash -s -- install
 ```
 
-After install:
+安装后访问：
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
+| 服务 | 地址 | 凭证 |
+|------|------|------|
 | WebChat | `http://127.0.0.1:18789/chat?session=main` | `OPENCLAW_GATEWAY_TOKEN` |
-| KasmVNC Desktop | `https://127.0.0.1:8443` | User `node`, password `OPENCLAW_KASMVNC_PASSWORD` |
+| KasmVNC 桌面 | `https://127.0.0.1:8443` | 用户名 `node`，密码 `OPENCLAW_KASMVNC_PASSWORD` |
 
-> Token and password are auto-generated on first install. Save them somewhere safe.
+> 首次安装会自动生成并输出 Token 和密码，请妥善保存。
 
-## Why KasmVNC + Containers
+## 为什么用 KasmVNC + 容器化
 
-- **Browser-based desktop** -- no VNC client needed, just open a browser
-- **Environment isolation** -- OpenClaw, desktop, and all dependencies live inside the container
-- **One-click deploy** -- install, upgrade, and restart via a single script + Compose
-- **Cross-platform** -- identical container behavior on Windows, macOS, and Linux
-- **Security** -- access controlled via port bindings, gateway token, and VNC password
-- **Docker-in-Docker** -- built-in dockerd lets OpenClaw create and manage child containers
-- **GPU auto-detect** -- automatically enables `nvidia` runtime when a host GPU is present
+- **浏览器直连桌面** — 无需本地安装 VNC 客户端，打开浏览器即可访问容器桌面
+- **环境隔离** — OpenClaw、桌面环境、依赖都在容器内，不污染主机系统
+- **一键部署** — 通过脚本和 Compose 一键安装/升级/重启，换机器也可快速复现
+- **跨平台一致** — Windows、macOS、Linux 使用同一套容器行为，排障路径统一
+- **安全可控** — 通过端口、Token、VNC 密码集中管理访问入口
+- **Docker-in-Docker** — 容器内内置 dockerd，OpenClaw 可直接创建和管理子容器，无需额外配置
+- **GPU 自动检测** — 安装时自动识别宿主机 NVIDIA GPU，有则启用 `nvidia` runtime，无则跳过
 
-## Prerequisites
+## 前置条件
 
-- Docker (with Docker Compose v2)
+- Docker（含 Docker Compose v2）
 - Windows: PowerShell 5+ / 7+
-- macOS / Linux: Bash
+- macOS/Linux: Bash
 
-## Common Commands
+## 常用命令
 
 <details>
 <summary><b>Windows (PowerShell)</b></summary>
 
 ```powershell
-# Install
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install
+# 安装
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command install
 
-# Uninstall (stop services only)
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command uninstall
+# 卸载（仅停服务）
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command uninstall
 
-# Uninstall and remove install directory
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command uninstall -Purge
+# 卸载并删除安装目录
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command uninstall -Purge
 
-# Restart
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command restart
+# 重启
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command restart
 
-# Upgrade
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command upgrade
+# 升级
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command upgrade
 
-# Status / Logs
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command status
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command logs -Tail 200
+# 状态 / 日志
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command status
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command logs -Tail 200
 ```
 
 </details>
@@ -73,40 +73,41 @@ powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command logs -T
 <summary><b>macOS / Linux (Bash)</b></summary>
 
 ```bash
-chmod +x ./openclaw-kasmvnc.sh
+chmod +x ./openclaw-kasmvnc-zh.sh
 
-./openclaw-kasmvnc.sh install              # Install
-./openclaw-kasmvnc.sh uninstall            # Uninstall (stop services only)
-./openclaw-kasmvnc.sh uninstall --purge    # Uninstall and remove install directory
-./openclaw-kasmvnc.sh restart              # Restart
-./openclaw-kasmvnc.sh upgrade              # Upgrade
-./openclaw-kasmvnc.sh status               # Status
-./openclaw-kasmvnc.sh logs --tail 200      # Logs
+./openclaw-kasmvnc-zh.sh install              # 安装
+./openclaw-kasmvnc-zh.sh uninstall            # 卸载（仅停服务）
+./openclaw-kasmvnc-zh.sh uninstall --purge    # 卸载并删除安装目录
+./openclaw-kasmvnc-zh.sh restart              # 重启
+./openclaw-kasmvnc-zh.sh upgrade              # 升级
+./openclaw-kasmvnc-zh.sh status               # 状态
+./openclaw-kasmvnc-zh.sh logs --tail 200      # 日志
 ```
 
 </details>
 
-## Optional Parameters
+## 可选参数
 
-| Parameter | Windows (PS1) | macOS/Linux (sh) | Default |
-|-----------|---------------|-------------------|---------|
-| Install directory | `-InstallDir` | `--install-dir` | `$HOME/openclaw-kasmvnc` |
-| Gateway port | `-GatewayPort` | `--gateway-port` | `18789` |
-| VNC HTTPS port | `-HttpsPort` | `--https-port` | `8443` |
-| Gateway token | `-GatewayToken` | `--gateway-token` | Auto-generated |
-| VNC password | `-KasmPassword` | `--kasm-password` | Auto-generated |
-| HTTP proxy | `-Proxy` | `--proxy` | None |
-| Log lines | `-Tail` | `--tail` | `200` |
-| Purge install dir | `-Purge` | `--purge` | No |
+| 参数 | Windows (PS1) | macOS/Linux (sh) | 默认值 |
+|------|---------------|-------------------|--------|
+| 安装目录 | `-InstallDir` | `--install-dir` | `$HOME/openclaw-kasmvnc` |
+| 网关端口 | `-GatewayPort` | `--gateway-port` | `18789` |
+| VNC HTTPS 端口 | `-HttpsPort` | `--https-port` | `8443` |
+| 网关 Token | `-GatewayToken` | `--gateway-token` | 自动生成 |
+| VNC 密码 | `-KasmPassword` | `--kasm-password` | 自动生成 |
+| 系统代理 | `-Proxy` | `--proxy` | 无 |
+| 日志行数 | `-Tail` | `--tail` | `200` |
+| 禁用构建缓存 | `-NoCache` | `--no-cache` | 否 |
+| 清除安装目录 | `-Purge` | `--purge` | 否 |
 
-> The script fetches the `latest` OpenClaw version via npm. Run `upgrade` to update.
+> 脚本默认通过 npm 获取 `latest` 版本的 OpenClaw。升级时直接运行 `upgrade` 即可。
 
 <details>
-<summary>Custom install examples</summary>
+<summary>自定义安装示例</summary>
 
 ```powershell
 # Windows
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 `
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 `
   -Command install `
   -InstallDir "D:\openclaw-deploy" `
   -GatewayPort "18789" `
@@ -115,7 +116,7 @@ powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 `
 
 ```bash
 # macOS/Linux
-./openclaw-kasmvnc.sh install \
+./openclaw-kasmvnc-zh.sh install \
   --install-dir "$HOME/openclaw-deploy" \
   --gateway-port 18789 \
   --https-port 8443
@@ -124,19 +125,19 @@ powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 `
 </details>
 
 <details>
-<summary>Using a proxy</summary>
+<summary>使用系统代理</summary>
 
-Pass `--proxy` at install time to route all container HTTP/HTTPS traffic through a proxy:
+安装时指定 `--proxy`，容器内所有 HTTP/HTTPS 请求都会走代理：
 
 ```bash
 # Linux/macOS
-./openclaw-kasmvnc.sh install --proxy http://192.168.1.131:10808
+./openclaw-kasmvnc-zh.sh install --proxy http://192.168.1.131:10808
 
 # Windows
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install -Proxy "http://192.168.1.131:10808"
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command install -Proxy "http://192.168.1.131:10808"
 ```
 
-You can also edit `.env` after install and `restart` to apply:
+安装后也可编辑 `.env` 开关代理，修改后执行 `restart` 生效：
 ```env
 OPENCLAW_HTTP_PROXY=http://192.168.1.131:10808
 ```
@@ -144,110 +145,136 @@ OPENCLAW_HTTP_PROXY=http://192.168.1.131:10808
 </details>
 
 <details>
-<summary>KasmVNC version selection</summary>
+<summary>选择 KasmVNC 版本</summary>
 
-Default is KasmVNC **1.3.0**. Override via environment variable:
+默认使用 KasmVNC **1.3.0**，可通过环境变量切换：
 
 ```bash
 # Linux/macOS
-OPENCLAW_KASMVNC_VERSION=1.4.0 ./openclaw-kasmvnc.sh install
+OPENCLAW_KASMVNC_VERSION=1.4.0 ./openclaw-kasmvnc-zh.sh install
 
 # Windows
 $env:OPENCLAW_KASMVNC_VERSION="1.4.0"
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command install
 ```
 
 </details>
 
-## Project Structure
+## 项目结构
 
-- `openclaw-kasmvnc.sh` -- macOS/Linux script (international)
-- `openclaw-kasmvnc.ps1` -- Windows script (international)
-- `openclaw-kasmvnc-zh.sh` -- macOS/Linux script (Chinese, with China-optimized mirrors)
-- `openclaw-kasmvnc-zh.ps1` -- Windows script (Chinese, with China-optimized mirrors)
+- `openclaw-kasmvnc-zh.sh` — macOS/Linux 管理脚本（中文版，含国内镜像加速）
+- `openclaw-kasmvnc-zh.ps1` — Windows 管理脚本（中文版，含国内镜像加速）
+- `openclaw-kasmvnc.sh` — macOS/Linux 管理脚本（国际版）
+- `openclaw-kasmvnc.ps1` — Windows 管理脚本（国际版）
 
-After running, the install directory contains:
+脚本运行后在安装目录下生成：
 ```
-<install-dir>/
-├── .env                              # Environment config (token, password, ports)
-├── .openclaw/                        # OpenClaw persistent config and workspace
-├── docker-compose.yml                # Compose service definition
-├── Dockerfile.kasmvnc                # Image build (node:22 + KasmVNC + XFCE)
+<安装目录>/
+├── .env                              # 环境变量配置（token、密码、端口等）
+├── .openclaw/                        # OpenClaw 持久化配置和工作区（挂载到容器内）
+├── docker-compose.yml                # Compose 服务定义
+├── Dockerfile.kasmvnc                # 镜像构建指令（node:22 + KasmVNC + XFCE + Fcitx5）
 └── scripts/docker/
-    ├── kasmvnc-startup.sh            # Container entrypoint (VNC → desktop → gateway)
-    └── systemctl-shim.sh             # systemctl shim (translates systemd calls to signals)
+    ├── kasmvnc-startup.sh            # 容器入口脚本（启动 VNC → 桌面 → 输入法 → 网关）
+    └── systemctl-shim.sh             # systemctl 模拟（将 systemd 调用转为进程信号）
 ```
 
-## Built-in Features
+## 内置优化
 
-- **UTC timezone, en_US locale** -- `TZ=UTC`, `LANG=en_US.UTF-8`, Noto fonts pre-installed
-- **Gateway auto-restart** -- supervisor loop restarts the gateway on crash; VNC session stays connected
-- **X11 cleanup** -- entrypoint clears stale X11 lock files and VNC processes to prevent black screens
-- **systemctl shim** -- no systemd in the container; the shim makes `openclaw gateway restart/stop/start` work
-- **Clipboard safety** -- removes the default `chromium/x-web-custom-data` MIME type so `pkill -f chromium` won't kill VNC
+- **中文环境预配置** — `TZ=Asia/Shanghai`、`LANG=zh_CN.UTF-8`，预装中文字体（Noto CJK）和 Fcitx5 + Rime（雾凇拼音）输入法，本地输入法默认启用
+- **网关无损重启** — gateway 重启期间 VNC 桌面会话保持连接不中断
+- **X11 状态清理** — 入口脚本自动清理残留的 X11 锁文件和 VNC 进程，避免容器重启后黑屏
+- **systemctl shim** — 容器内无 systemd，通过 shim 使 `openclaw gateway restart/stop/start` 等命令正常工作
+- **剪贴板安全** — 移除 KasmVNC 默认的 `chromium/x-web-custom-data` MIME 类型，`pkill -f chromium` 不会误杀 VNC
 
 <details>
-<summary>Managing the gateway inside the container</summary>
+<summary>在容器内管理 Gateway</summary>
 
-Open a terminal in the VNC desktop and use standard OpenClaw commands:
+在 VNC 桌面的终端里，可以直接使用标准的 OpenClaw 命令：
 
 ```bash
-openclaw gateway restart          # Restart (reload latest code)
-openclaw gateway stop             # Stop
-openclaw gateway status --probe   # Check status
+openclaw gateway restart          # 重启（加载最新代码）
+openclaw gateway stop             # 停止
+openclaw gateway status --probe   # 查看状态
 ```
 
-> These commands work via the built-in systemctl shim -- no real systemd required.
+> 这些命令通过内置的 systemctl shim 实现，无需真正的 systemd。
 
 </details>
 
-## Configuration Changes
+## 修改配置后如何生效
 
-Config files: `<install-dir>/openclaw/.env`, `<install-dir>/openclaw/.openclaw/openclaw.json`
+常见配置位置：`<安装目录>/openclaw/.env`、`<安装目录>/openclaw/.openclaw/openclaw.json`
 
-1. Edit the config file
-2. Run `restart`
-3. Verify with `status` and `logs --tail 200`
+1. 修改配置文件
+2. 执行 `restart`
+3. 用 `status` 和 `logs --tail 200` 验证
 
-> If you changed image-level config (Dockerfile, system packages), run `upgrade` instead of `restart`.
+> 如果修改的是镜像配置（如 Dockerfile、系统依赖），需执行 `upgrade` 而非 `restart`。
 
-## Known Issues
+## 已知问题
 
-### VNC flicker during `openclaw update`
+### 执行 `openclaw update` 时 VNC 短暂闪断
 
-`npm install` causes high CPU/IO, which may trigger KasmVNC WebSocket heartbeat timeouts. This is temporary resource contention -- the session recovers automatically. Run `upgrade` when the host has spare resources.
+`npm install` 解压依赖时 CPU/IO 占用极高，可能导致 KasmVNC WebSocket 心跳超时。这是资源抢占引起的假死，完成后自动恢复。建议在宿主机资源充裕时执行 `upgrade`。
 
-## FAQ
+## 常见问题（FAQ）
 
-### 1. Port conflict
+### 1. 构建失败或需要清除缓存
 
-Change ports at install time: Windows `-GatewayPort 28789 -HttpsPort 9443`, macOS/Linux `--gateway-port 28789 --https-port 9443`, then re-run `install`.
+如果安装过程中遇到构建错误，可以使用 `--no-cache` 参数禁用 Docker 构建缓存：
 
-### 2. HTTPS certificate warning
+```bash
+# macOS/Linux
+./openclaw-kasmvnc-zh.sh install --no-cache
 
-KasmVNC uses a self-signed certificate by default. Click through the browser warning, or set up a reverse proxy (Nginx / Caddy) with a real cert.
+# Windows
+powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command install -NoCache
+```
 
-### 3. Black screen after entering desktop
+### 3. 端口被占用
 
-Try in order: `restart` → `status` → `logs --tail 200` → `upgrade`.
+安装时改端口：Windows `-GatewayPort 28789 -HttpsPort 9443`，macOS/Linux `--gateway-port 28789 --https-port 9443`，然后重新 `install`。
 
-### 4. Container restart loop
+### 4. KasmVNC 提示 HTTPS 证书不安全
 
-Common causes: missing `.env` parameters, directory permission issues, port conflicts. Re-run `install` or change ports.
+默认使用容器自签名证书，属于正常现象。在浏览器选择继续访问，或自行配置反向代理（Nginx/Caddy）。
 
-### 5. macOS `chown: Operation not permitted`
+### 5. Fcitx5 默认未激活中文
 
-This warning may appear on Apple Silicon Macs for certain mount paths. If the container runs fine, it can be safely ignored.
+旧卷配置冲突导致。处理：
+1. 宿主机执行 `upgrade`
+2. VNC 终端执行 `rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml ~/.config/autostart/fcitx5.desktop`
+3. 桌面菜单 → Log Out → 刷新页面重新进入
 
-### 6. Why Chromium instead of Chrome?
+### 6. 进入桌面后黑屏
 
-1. **Multi-arch** -- Google does not ship ARM64 Chrome; Chromium supports both x86_64 and arm64
-2. **License** -- Chrome includes proprietary components (DRM, etc.) unsuitable for public images
-3. **Clean dependencies** -- `apt install chromium` integrates cleanly with system libraries
+依次尝试：`restart` → `status` → `logs --tail 200` → `upgrade`。
 
-### 7. Too many logs
+### 7. 容器反复重启
 
-Use `logs --tail 200` for recent output, `logs --tail 50` to quickly spot errors.
+常见原因：`.env` 缺参数、目录权限异常、端口冲突。重新 `install` 或更换端口。
+
+### 8. macOS 上 `chown: Operation not permitted`
+
+macOS M 系列部分挂载路径会出现此提示，容器运行正常则可安全忽略。
+
+### 9. 为什么用 Chromium 而不是 Chrome？
+
+1. **多架构兼容** — Google 未提供 ARM64 Chrome，Chromium 是唯一同时适配 x86_64 和 arm64 的方案
+2. **版权合规** — Chrome 含闭源插件（DRM 等），不适合打包到公有镜像
+3. **依赖纯净** — `apt install` 的 Chromium 与系统库无缝兼容，无需第三方源
+
+### 10. 升级后中文输入法不是默认首选
+
+旧版配置持久化导致。VNC 终端执行后断开重连：
+```bash
+rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml ~/.config/dconf
+```
+
+### 11. 日志太多
+
+用 `logs --tail 200` 看最近日志，`logs --tail 50` 快速定位报错。
 
 ## Star History
 
