@@ -377,8 +377,8 @@ RUN set -eux; \
   pkg="kasmvncserver_bookworm_${KASMVNC_VERSION}_${pkg_arch}.deb"; \
   url="https://claw.ihasy.com/mirror/kasmvnc/${pkg}"; \
   curl -fsSL "${url}" -o "/tmp/${pkg}"; \
-  apt-get update; \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "/tmp/${pkg}"; \
+  apt-get update --allow-insecure-repositories || apt-get update -o Acquire::AllowInsecureRepositories=true || apt-get update; \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated "/tmp/${pkg}"; \
   rm -f "/tmp/${pkg}"; \
   rm -rf /var/lib/apt/lists/*
 
