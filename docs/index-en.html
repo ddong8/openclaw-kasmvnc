@@ -197,7 +197,7 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
 <section class="hero">
 <div class="container">
   <h1>One-Click OpenClaw Agent Deployment</h1>
-  <p class="subtitle">OpenClaw Cloud Desktop, browser-based remote desktop with Docker-in-Docker, GPU acceleration, and Chinese input support, ready out of the box</p>
+  <p class="subtitle">OpenClaw Cloud Desktop, browser-based remote desktop with Docker-in-Docker and GPU acceleration, ready out of the box</p>
   <div class="quick-install">
     <span class="prompt">$</span>
     <span id="hero-cmd">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc.sh | bash -s -- install</span>
@@ -371,7 +371,6 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Build failed or need to clear cache?<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">Use <code>--no-cache</code> parameter to disable Docker build cache: <code>./openclaw-kasmvnc.sh install --no-cache</code> (Windows use <code>-NoCache</code>).</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Port already in use?<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">Specify different ports during installation: <code>--gateway-port 28789 --https-port 9443</code> (Windows use <code>-GatewayPort 28789 -HttpsPort 9443</code>), then reinstall.</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">KasmVNC shows HTTPS certificate warning?<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">Default uses container self-signed certificate, this is normal. Click "Continue" in browser, or configure your own reverse proxy (Nginx / Caddy).</div></div></div>
-    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Chinese input method not activated?<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">Caused by old volume config conflict. Run <code>upgrade</code> on host, then in VNC terminal run <code>rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml</code>, finally Log Out from desktop menu and refresh page to re-enter.</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Black screen after entering desktop?<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">Try in order: <code>restart</code> → <code>status</code> → <code>logs --tail 200</code> → <code>upgrade</code>.</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">macOS shows "chown: Operation not permitted"?<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">Some mount paths on macOS M-series may show this message, safe to ignore if container runs normally.</div></div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Why Chromium instead of Chrome?<span class="arrow">▼</span></div><div class="faq-a"><div class="faq-a-inner">Three reasons: 1) Multi-arch compatibility — Google doesn't provide ARM64 Chrome; 2) License compliance — Chrome contains closed-source plugins; 3) Clean dependencies — apt-installed Chromium integrates seamlessly with system libraries.</div></div></div>
