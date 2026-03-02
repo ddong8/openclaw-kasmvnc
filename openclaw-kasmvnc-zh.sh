@@ -265,11 +265,18 @@ ARG HTTPS_PROXY
 # 配置 npm 使用淘宝镜像源，强制 git 使用 HTTPS 协议，禁用 SSL 验证以兼容代理环境
 ARG OPENC_CACHE_BUST=1
 RUN npm config set registry https://registry.npmmirror.com \
+ && npm config set disturl https://npmmirror.com/dist \
+ && npm config set electron_mirror https://npmmirror.com/mirrors/electron/ \
+ && npm config set sass_binary_site https://npmmirror.com/mirrors/node-sass/ \
+ && npm config set phantomjs_cdnurl https://npmmirror.com/mirrors/phantomjs/ \
+ && npm config set chromedriver_cdnurl https://npmmirror.com/mirrors/chromedriver/ \
+ && npm config set operadriver_cdnurl https://npmmirror.com/mirrors/operadriver/ \
+ && npm config set fse_binary_host_mirror https://npmmirror.com/mirrors/fsevents \
  && git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://" \
  && git config --global http.sslVerify false \
- && npm install -g openclaw@latest \
+ && npm install -g openclaw@latest --prefer-offline --no-audit --no-fund \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 # 将 KasmVNC 加入 PATH，设置中文环境变量和输入法框架
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
