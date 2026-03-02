@@ -4,6 +4,8 @@ One-click deployment for OpenClaw + KasmVNC (Windows / macOS / Linux).
 
 > 🇨🇳 中文版 / Chinese version: [README-zh.md](README-zh.md)
 
+![OpenClaw Desktop Environment](docs/screenshot-desktop.png)
+
 ## Key Advantages
 
 ### 🔧 Full Lifecycle Management Inside Container

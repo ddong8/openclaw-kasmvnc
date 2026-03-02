@@ -4,6 +4,8 @@
 
 一键部署 OpenClaw + KasmVNC（支持 Windows / macOS / Linux）。
 
+![OpenClaw 桌面环境](docs/screenshot-desktop.png)
+
 ## 核心优势
 
 ### 🔧 容器内完整生命周期管理
