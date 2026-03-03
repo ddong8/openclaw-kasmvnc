@@ -670,7 +670,7 @@ STOP_MARKER="/tmp/openclaw-gateway.stopped"
 # 导致服务进程和 CLI 进程的命令行完全相同，无法通过 pgrep 区分
 find_gateway_pid() {
   pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
-  if [ -n "$pid" && "$pid" != "1" ]; then
+  if [ -n "$pid" ] && [ "$pid" != "1" ]; then
     echo "$pid"
     return 0
   fi

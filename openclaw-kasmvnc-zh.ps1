@@ -576,7 +576,7 @@ find_gateway_pid() {
   # This is the only reliable method because Node.js process.title overwrites
   # the entire /proc/PID/cmdline, making server and CLI processes indistinguishable.
   pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
-  if [ -n "$pid" && "$pid" != "1" ]; then
+  if [ -n "$pid" ] && [ "$pid" != "1" ]; then
     echo "$pid"
     return 0
   fi

@@ -523,7 +523,7 @@ STOP_MARKER="/tmp/openclaw-gateway.stopped"
 
 find_gateway_pid() {
   pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
-  if [ -n "$pid" && "$pid" != "1" ]; then
+  if [ -n "$pid" ] && [ "$pid" != "1" ]; then
     echo "$pid"
     return 0
   fi
