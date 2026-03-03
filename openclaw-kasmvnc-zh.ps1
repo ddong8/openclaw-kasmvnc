@@ -91,7 +91,7 @@ function Upsert-EnvLine {
 
 # 封装 docker compose 调用，统一指定 compose 文件，失败时抛出异常
 function Invoke-Compose {
-  param([Parameter(Mandatory = $true)][string[]$ComposeArgs)
+  param([Parameter(Mandatory = $true)][string[]]$ComposeArgs)
   & docker compose -f docker-compose.yml @ComposeArgs
   if ($LASTEXITCODE -ne 0) {
     throw "docker compose failed: $($ComposeArgs -join ' ')"

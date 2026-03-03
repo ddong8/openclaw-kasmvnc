@@ -83,7 +83,7 @@ function Upsert-EnvLine {
 }
 
 function Invoke-Compose {
-  param([Parameter(Mandatory = $true)][string[]$ComposeArgs)
+  param([Parameter(Mandatory = $true)][string[]]$ComposeArgs)
   & docker compose -f docker-compose.yml @ComposeArgs
   if ($LASTEXITCODE -ne 0) {
     throw "docker compose failed: $($ComposeArgs -join ' ')"
