@@ -31,6 +31,9 @@ jobs:
           - name: latest-no-dind
             use_cn_mirror: "1"
             no_dind: "1"
+          - name: latest-intl-no-dind
+            use_cn_mirror: "0"
+            no_dind: "1"
 
     steps:
       - name: Checkout repository

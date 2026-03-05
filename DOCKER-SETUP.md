@@ -115,7 +115,8 @@ docker rm -f openclaw-test
 |---------|------|---------|
 | `latest` | 中文版 + 国内镜像 + DinD | 国内用户，需要 Docker-in-Docker |
 | `latest-intl` | 国际版 + 官方源 + DinD | 国外用户，需要 Docker-in-Docker |
-| `latest-no-dind` | 中文版 + 无 DinD | 国内用户，不需要子容器（更安全） |
+| `latest-no-dind` | 中文版 + 国内镜像 + 无 DinD | 国内用户，不需要子容器（更安全） |
+| `latest-intl-no-dind` | 国际版 + 官方源 + 无 DinD | 国外用户，不需要子容器（更安全） |
 
 ## 7. 常见问题
 
