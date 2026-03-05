@@ -5,11 +5,16 @@ USER root
 # Remove dpkg exclusions so translation files (locales) are installed for full UI localization
 RUN rm -f /etc/dpkg/dpkg.cfg.d/docker && rm -f /etc/apt/apt.conf.d/docker-clean
 
-# Configure apt to use Tsinghua mirror for faster downloads in China
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
- && sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
- && sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true \
- && sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true
+# Accept build arguments early
+ARG USE_CN_MIRROR=1
+
+# Configure apt to use Tsinghua mirror for faster downloads in China (only if USE_CN_MIRROR=1)
+RUN if [ "${USE_CN_MIRROR}" = "1" ]; then \
+      sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true; \
+      sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true; \
+      sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true; \
+      sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true; \
+    fi
 
 # Install git and ssh client (required by some npm lifecycle scripts and git dependencies)
 RUN apt-get update && apt-get install -y --no-install-recommends git openssh-client && rm -rf /var/lib/apt/lists/*
@@ -17,7 +22,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git openssh-cli
 # Accept proxy build arguments
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
-ARG USE_CN_MIRROR=1
 
 # Install OpenClaw via npm (pre-built, includes correct version metadata)
 # Configure npm registry and force git to use HTTPS, preserving optional dependencies
