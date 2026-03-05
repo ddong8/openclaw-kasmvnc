@@ -38,6 +38,25 @@ Cloud vendor OpenClaw deployments typically only provide CLI, making it impossib
 
 ## Quick Start
 
+### Option 1: Docker Image (Recommended)
+
+```bash
+docker run -d \
+  --name openclaw-kasmvnc \
+  --privileged \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest
+```
+
+> 📖 Full documentation: [DOCKER.md](DOCKER.md)
+
+### Option 2: One-Click Script
+
 Windows:
 ```powershell
 irm https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.ps1 | iex
@@ -48,7 +67,7 @@ macOS / Linux:
 curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.sh | bash -s -- install
 ```
 
-After install:
+### Access Services
 
 | Service | URL | Credentials |
 |---------|-----|-------------|

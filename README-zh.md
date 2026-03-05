@@ -39,6 +39,25 @@
 
 ## 快速上手
 
+### 方式一：Docker 镜像（推荐）
+
+```bash
+docker run -d \
+  --name openclaw-kasmvnc \
+  --privileged \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest
+```
+
+> 📖 详细文档：[DOCKER.md](DOCKER.md)
+
+### 方式二：一键脚本
+
 Windows:
 ```powershell
 irm https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc-zh.ps1 | iex
@@ -49,7 +68,7 @@ macOS / Linux:
 curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc-zh.sh | bash -s -- install
 ```
 
-安装后访问：
+### 访问服务
 
 | 服务 | 地址 | 凭证 |
 |------|------|------|
