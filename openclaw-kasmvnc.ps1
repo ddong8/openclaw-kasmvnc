@@ -449,6 +449,25 @@ if [ -f "`${HOME}/.openclaw/openclaw.json" ]; then
   fi
 fi
 
+# Ensure systemd service file exists (support install/uninstall commands)
+if [ ! -f "`${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
+  mkdir -p "`${HOME}/.config/systemd/user"
+  cat > "`${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
+[Unit]
+Description=OpenClaw Gateway (managed by supervisor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/bin/true
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+EOSVC
+fi
+
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 openclaw config set gateway.bind "`${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 

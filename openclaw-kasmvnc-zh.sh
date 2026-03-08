@@ -656,6 +656,25 @@ if [ -f "\${HOME}/.openclaw/openclaw.json" ]; then
   fi
 fi
 
+# ── 确保 systemd service 文件存在（支持 install/uninstall 命令）──
+if [ ! -f "\${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
+  mkdir -p "\${HOME}/.config/systemd/user"
+  cat > "\${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
+[Unit]
+Description=OpenClaw Gateway (managed by supervisor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/bin/true
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+EOSVC
+fi
+
 # 配置 gateway 允许非 loopback 绑定时的 Host-header 回退（远程访问必需）
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 # 强制设置 gateway bind 配置（覆盖可能的 loopback 配置）
