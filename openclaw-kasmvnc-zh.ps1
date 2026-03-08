@@ -387,10 +387,10 @@ RESOLUTION="${OPENCLAW_KASMVNC_RESOLUTION:-1920x1080}"
 DEPTH="${OPENCLAW_KASMVNC_DEPTH:-24}"
 
 mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
-chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
+chmod 700 "`${HOME}/.vnc" "`${XDG_RUNTIME_DIR}"
 
-# Start Docker daemon in background for DinD support
-if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+# Start Docker daemon in background for DinD support (only if NO_DIND != 1)
+if [ "`${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
   sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &
   for i in $(seq 1 10); do
     [ -S /var/run/docker.sock ] && break
@@ -399,7 +399,7 @@ if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
 fi
 
 # Ensure interactive shells call openclaw directly (no throttling alias)
-sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
+sed -i '/^alias openclaw=/d' "`${HOME}/.bashrc" 2>/dev/null || true
 
 # Configure NPM registry
 cat > "${HOME}/.npmrc" <<'EONPMRC'
