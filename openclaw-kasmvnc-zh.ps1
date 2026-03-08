@@ -550,6 +550,8 @@ fi
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 openclaw config set gateway.bind "`${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
+openclaw gateway install >/dev/null 2>&1 || true
+
 # 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
 # 设置环境变量让 gateway 知道有 supervisor 管理
 export OPENCLAW_SERVICE_MARKER=1

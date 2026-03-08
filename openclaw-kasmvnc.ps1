@@ -446,6 +446,8 @@ fi
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 openclaw config set gateway.bind "`${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
+openclaw gateway install >/dev/null 2>&1 || true
+
 # Run supervisor loop in foreground (bypass systemctl to avoid double-backgrounding)
 export OPENCLAW_SERVICE_MARKER=1
 unset OPENCLAW_NO_RESPAWN 2>/dev/null || true

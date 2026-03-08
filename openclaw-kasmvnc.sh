@@ -530,6 +530,9 @@ openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback t
 # Force set gateway bind config (override possible loopback config)
 openclaw config set gateway.bind "\${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
+# Register gateway service (enable openclaw CLI commands)
+openclaw gateway install >/dev/null 2>&1 || true
+
 # Run supervisor loop in foreground (bypass systemctl to avoid double-backgrounding)
 export OPENCLAW_SERVICE_MARKER=1
 unset OPENCLAW_NO_RESPAWN 2>/dev/null || true

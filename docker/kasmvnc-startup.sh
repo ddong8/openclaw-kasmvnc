@@ -206,6 +206,9 @@ openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback t
 # 强制设置 gateway bind 配置（覆盖可能的 loopback 配置）
 openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
+# 注册 gateway 服务（让 openclaw CLI 命令正常工作）
+openclaw gateway install >/dev/null 2>&1 || true
+
 # 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
 # 设置环境变量让 gateway 知道有 supervisor 管理
 export OPENCLAW_SERVICE_MARKER=1
