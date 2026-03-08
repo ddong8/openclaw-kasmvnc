@@ -510,7 +510,7 @@ rm -f "${HOME}/.vnc/"*"${DISPLAY}"*.pid 2>/dev/null || true
 
 # Override KasmVNC DLP clipboard config: remove "chromium/x-web-custom-data" MIME type
 # so that Xvnc cmdline does not contain "chromium" (prevents pkill -f chromium from killing Xvnc)
-sudo sh -c 'cat > /etc/kasmvnc/kasmvnc.yaml' <<'KASMCFG'
+sudo tee /etc/kasmvnc/kasmvnc.yaml >/dev/null <<'KASMCFG' || true
 data_loss_prevention:
   clipboard:
     allow_mimetypes:

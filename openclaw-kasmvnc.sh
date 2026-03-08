@@ -478,7 +478,7 @@ rm -f "/tmp/.X${DISPLAY_NUM}-lock" "/tmp/.X11-unix/X${DISPLAY_NUM}"
 rm -f "${HOME}/.vnc/"*"${DISPLAY}"*.pid 2>/dev/null || true
 
 # Override KasmVNC DLP clipboard config
-sudo sh -c 'cat > /etc/kasmvnc/kasmvnc.yaml' <<'KASMCFG'
+sudo tee /etc/kasmvnc/kasmvnc.yaml >/dev/null <<'KASMCFG' || true
 data_loss_prevention:
   clipboard:
     allow_mimetypes:

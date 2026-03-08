@@ -608,7 +608,7 @@ rm -f "${HOME}/.vnc/"*"${DISPLAY}"*.pid 2>/dev/null || true
 # ── 覆写 KasmVNC 剪贴板配置 ──
 # 移除默认的 chromium/x-web-custom-data MIME 类型，使 Xvnc 命令行不含 "chromium"
 # 这样 pkill -f chromium 不会误杀 VNC 服务进程
-sudo sh -c 'cat > /etc/kasmvnc/kasmvnc.yaml' <<'KASMCFG'
+sudo tee /etc/kasmvnc/kasmvnc.yaml >/dev/null <<'KASMCFG' || true
 data_loss_prevention:
   clipboard:
     allow_mimetypes:
