@@ -2,6 +2,7 @@
 .git
 .gitignore
 .gitattributes
+.github
 
 # Documentation
 README.md
@@ -15,6 +16,7 @@ openclaw-kasmvnc.sh
 openclaw-kasmvnc-zh.sh
 openclaw-kasmvnc.ps1
 openclaw-kasmvnc-zh.ps1
+*.ps1
 
 # Website
 docs/
@@ -36,3 +38,10 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development

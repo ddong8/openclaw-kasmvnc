@@ -275,21 +275,24 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 
 # 通过 npm 全局安装 OpenClaw
-# 配置 npm 使用淘宝镜像源，强制 git 使用 HTTPS 协议，禁用 SSL 验证以兼容代理环境
+# 配置 npm 使用淘宝镜像源，强制 git 使用 HTTPS 协议
 ARG OPENC_CACHE_BUST=1
 RUN npm config set registry https://registry.npmmirror.com \
  && git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://" \
- && git config --global http.sslVerify false \
  && npm install -g openclaw@latest --no-audit --no-fund \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
+
+# 配置时区和语言环境（可通过构建参数覆盖）
+ARG TZ=Asia/Shanghai
+ARG LANG=zh_CN.UTF-8
 # 将 KasmVNC 加入 PATH，设置中文环境变量和输入法框架
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
-ENV TZ=Asia/Shanghai
-ENV LANG=zh_CN.UTF-8
-ENV LANGUAGE=zh_CN:zh
-ENV LC_ALL=zh_CN.UTF-8
+ENV TZ=\${TZ}
+ENV LANG=\${LANG}
+ENV LANGUAGE=\${LANG%.*}:\${LANG%%_*}
+ENV LC_ALL=\${LANG}
 # Fcitx5 输入法环境变量（GTK/Qt/X11 三端都需要设置）
 ENV GTK_IM_MODULE=fcitx
 ENV QT_IM_MODULE=fcitx
@@ -346,7 +349,7 @@ EOF
 
 # 安装 Docker CE 实现容器内 Docker（DinD），使用阿里云镜像源
 RUN curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bookworm stable" \
+  && echo "deb [arch=${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bookworm stable" \
      > /etc/apt/sources.list.d/docker.list \
   && apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing \
@@ -434,6 +437,9 @@ RUN im-config -n fcitx5
 USER node
 
 EXPOSE 18789 18790 8443 8444
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:18789/ || exit 1
 
 ENTRYPOINT ["kasmvnc-startup"]
 CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]

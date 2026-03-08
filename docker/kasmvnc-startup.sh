@@ -29,7 +29,8 @@ mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
 chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
 
 # 后台启动 Docker 守护进程（DinD 支持），等待 socket 就绪
-if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+# 只在 NO_DIND 不为 1 时启动
+if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
   sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &
   for i in $(seq 1 10); do
     [ -S /var/run/docker.sock ] && break
