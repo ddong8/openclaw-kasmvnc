@@ -337,8 +337,8 @@ mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
 chmod 700 "`${HOME}/.vnc" "`${XDG_RUNTIME_DIR}"
 
 # Start Docker daemon in background for DinD support (only if NO_DIND != 1)
-if [ "`${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
-  sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &
+if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+  (sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &) || true
   for i in $(seq 1 10); do
     [ -S /var/run/docker.sock ] && break
     sleep 1
@@ -436,6 +436,8 @@ while true; do
   if [ -n "$ver" ]; then export OPENCLAW_VERSION="$ver"; fi
 
   # Start gateway (foreground)
+  # Temporarily disable set -e to capture exit code
+  set +e
   if command -v openclaw >/dev/null 2>&1; then
     # Add --token parameter if OPENCLAW_GATEWAY_TOKEN is set
     if [ -n "${OPENCLAW_GATEWAY_TOKEN:-}" ]; then
@@ -451,6 +453,7 @@ while true; do
   fi
 
   rc=$?
+  set -e
 
   # exit 0 = supervised restart (SIGUSR1), brief wait before restart
   # non-zero = crash, longer wait before retry
