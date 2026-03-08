@@ -344,7 +344,10 @@ RUN sed -i 's/\r$//' /usr/local/bin/systemctl /usr/local/bin/kasmvnc-startup \
   && chmod +x /usr/local/bin/systemctl /usr/local/bin/kasmvnc-startup \
   && usermod -a -G ssl-cert node \
   && (getent group docker >/dev/null && usermod -a -G docker node || true) \
-  && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+  && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
+  && mkdir -p /home/node/.openclaw /home/node/.vnc \
+  && chown -R node:node /home/node/.openclaw /home/node/.vnc \
+  && chmod 700 /home/node/.openclaw /home/node/.vnc
 
 # Register Fcitx5 as the system default input method framework
 RUN im-config -n fcitx5
