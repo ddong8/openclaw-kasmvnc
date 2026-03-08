@@ -519,12 +519,12 @@ fi
 if [ -f "\${HOME}/.openclaw/openclaw.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     # Use jq to surgically remove only platform fields
-    jq 'del(.identity.pinnedPlatform, .identity.pinnedDeviceFamily)' \\
-      "\${HOME}/.openclaw/openclaw.json" > "\${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \\
+    jq 'del(.identity.pinnedPlatform, .identity.pinnedDeviceFamily)' \
+      "\${HOME}/.openclaw/openclaw.json" > "\${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
       && mv "\${HOME}/.openclaw/openclaw.json.tmp" "\${HOME}/.openclaw/openclaw.json" || true
   else
     # Fallback: if non-Linux platform detected, backup entire config
-    if grep -q '"pinnedPlatform".*"darwin"' "\${HOME}/.openclaw/openclaw.json" 2>/dev/null || \\
+    if grep -q '"pinnedPlatform".*"darwin"' "\${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
        grep -q '"pinnedPlatform".*"win32"' "\${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
       echo "Detected non-Linux platform config, backing up..." >&2
       mv "\${HOME}/.openclaw/openclaw.json" "\${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
@@ -533,9 +533,9 @@ if [ -f "\${HOME}/.openclaw/openclaw.json" ]; then
 fi
 
 # Ensure systemd service file exists (support install/uninstall commands)
-if [ ! -f "\${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
-  mkdir -p "\${HOME}/.config/systemd/user"
-  cat > "\${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
+if [ ! -f "${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
+  mkdir -p "${HOME}/.config/systemd/user"
+  cat > "${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
 [Unit]
 Description=OpenClaw Gateway (managed by supervisor)
 After=network-online.target
