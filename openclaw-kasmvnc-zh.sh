@@ -675,6 +675,9 @@ WantedBy=default.target
 EOSVC
 fi
 
+# Clear stop marker (auto-start after container restart)
+rm -f /tmp/openclaw-gateway.stopped
+
 # 配置 gateway 允许非 loopback 绑定时的 Host-header 回退（远程访问必需）
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 # 强制设置 gateway bind 配置（覆盖可能的 loopback 配置）

@@ -551,6 +551,9 @@ WantedBy=default.target
 EOSVC
 fi
 
+# Clear stop marker (auto-start after container restart)
+rm -f /tmp/openclaw-gateway.stopped
+
 # Allow Host-header origin fallback for remote access
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 # Force set gateway bind config (override possible loopback config)

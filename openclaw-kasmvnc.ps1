@@ -468,6 +468,10 @@ WantedBy=default.target
 EOSVC
 fi
 
+# Clear stop marker (auto-start after container restart)
+rm -f /tmp/openclaw-gateway.stopped
+
+
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 openclaw config set gateway.bind "`${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
