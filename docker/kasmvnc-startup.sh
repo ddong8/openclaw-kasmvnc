@@ -25,8 +25,8 @@ RESOLUTION="${OPENCLAW_KASMVNC_RESOLUTION:-1920x1080}"
 DEPTH="${OPENCLAW_KASMVNC_DEPTH:-24}"
 
 # 创建 VNC 和 XDG 运行时目录
-mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
-chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}"
+mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
+chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
 
 # 后台启动 Docker 守护进程（DinD 支持），等待 socket 就绪
 # 只在 NO_DIND 不为 1 时启动
