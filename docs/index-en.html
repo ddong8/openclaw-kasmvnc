@@ -507,10 +507,12 @@ function copyCode(id,btn){
   setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied')},2000);
 }
 function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('tab-'+name).classList.add('active');
+  const btn = event.target;
+  const tabsContainer = btn.closest('.tabs').parentElement;
+  tabsContainer.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  tabsContainer.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  tabsContainer.querySelector('#tab-'+name).classList.add('active');
 }
 function toggleFaq(el){
   el.parentElement.classList.toggle('open');
