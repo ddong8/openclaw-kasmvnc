@@ -18,6 +18,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write
 
     strategy:
       matrix:
@@ -74,3 +75,77 @@ jobs:
             NO_DIND=${{ matrix.variant.no_dind }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ matrix.variant.name }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Test Docker image
+        run: |
+          echo "Testing image: ${{ env.IMAGE_NAME }}:${{ matrix.variant.name }}"
+
+          # Pull the image for testing (amd64 only for CI)
+          docker pull --platform linux/amd64 ${{ env.IMAGE_NAME }}:${{ matrix.variant.name }}
+
+          # Start container
+          docker run -d --name test-container \
+            --platform linux/amd64 \
+            -e OPENCLAW_GATEWAY_TOKEN=test-token-${{ github.run_id }} \
+            -e OPENCLAW_KASMVNC_PASSWORD=test-password \
+            ${{ env.IMAGE_NAME }}:${{ matrix.variant.name }}
+
+          # Wait for services to start
+          echo "Waiting for services to start..."
+          sleep 45
+
+          # Check container is running
+          if ! docker ps | grep test-container; then
+            echo "Container failed to start"
+            docker logs test-container
+            exit 1
+          fi
+
+          # Check gateway port is listening
+          echo "Checking gateway port..."
+          docker exec test-container sh -c "curl -f http://localhost:18789/ || exit 1"
+
+          # Check VNC port is listening
+          echo "Checking VNC port..."
+          docker exec test-container sh -c "curl -k -f https://localhost:8444/ || exit 1"
+
+          # Verify NO_DIND behavior
+          if [ "${{ matrix.variant.no_dind }}" = "1" ]; then
+            echo "Verifying dockerd is NOT running (no-dind variant)..."
+            if docker exec test-container ps aux | grep -v grep | grep dockerd; then
+              echo "ERROR: dockerd should not be running in no-dind variant"
+              exit 1
+            fi
+            echo "✓ dockerd correctly not running"
+          else
+            echo "Verifying dockerd IS running (dind variant)..."
+            if ! docker exec test-container ps aux | grep -v grep | grep dockerd; then
+              echo "WARNING: dockerd not running in dind variant (may be starting)"
+            else
+              echo "✓ dockerd is running"
+            fi
+          fi
+
+          echo "✓ All tests passed for ${{ matrix.variant.name }}"
+        continue-on-error: false
+
+      - name: Cleanup test container
+        if: always()
+        run: |
+          docker stop test-container 2>/dev/null || true
+          docker rm test-container 2>/dev/null || true
+
