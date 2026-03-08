@@ -32,7 +32,7 @@ chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
 # 只在 NO_DIND 不为 1 时启动
 if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
   (sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &) || true
-  for i in $(seq 1 10); do
+  for i in $(seq 1 30); do
     [ -S /var/run/docker.sock ] && break
     sleep 1
   done

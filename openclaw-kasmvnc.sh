@@ -413,10 +413,10 @@ DEPTH="${OPENCLAW_KASMVNC_DEPTH:-24}"
 mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
 chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
 
-# Start Docker daemon in background for DinD support
-if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+# Start Docker daemon in background for DinD support (only if NO_DIND != 1)
+if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
   (sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &) || true
-  for i in $(seq 1 10); do
+  for i in $(seq 1 30); do
     [ -S /var/run/docker.sock ] && break
     sleep 1
   done
@@ -424,10 +424,16 @@ fi
 
 sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
-# Configure NPM registry
-cat > "${HOME}/.npmrc" <<'EONPMRC'
+# Configure NPM registry based on USE_CN_MIRROR
+if [ "${USE_CN_MIRROR:-0}" = "1" ]; then
+  cat > "${HOME}/.npmrc" <<'EONPMRC'
+registry=https://registry.npmmirror.com
+EONPMRC
+else
+  cat > "${HOME}/.npmrc" <<'EONPMRC'
 registry=https://registry.npmjs.org
 EONPMRC
+fi
 
 mkdir -p "${HOME}/.config" "${HOME}/.config/xfce4"
 cat > "${HOME}/.config/xfce4/helpers.rc" <<'EOH'

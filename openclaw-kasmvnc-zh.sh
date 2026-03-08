@@ -483,7 +483,7 @@ chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
 # 后台启动 Docker 守护进程（DinD 支持），等待 socket 就绪
 if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
   (sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &) || true
-  for i in $(seq 1 10); do
+  for i in $(seq 1 30); do
     [ -S /var/run/docker.sock ] && break
     sleep 1
   done
