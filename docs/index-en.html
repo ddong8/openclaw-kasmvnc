@@ -232,6 +232,7 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
   <div class="features-grid">
     <div class="feature-card"><div class="icon">🔧</div><h3>Full Container Lifecycle</h3><p>Official Docker solution lacks systemd, preventing in-container restart/upgrade. This project solves it perfectly with systemctl shim, supporting full lifecycle management like restart and upgrade inside containers</p></div>
     <div class="feature-card"><div class="icon">👁️</div><h3>Visual Desktop Environment</h3><p>Cloud vendor one-click deployments only provide CLI, making it impossible to observe Agent operations. This project provides a complete XFCE desktop to watch OpenClaw interact with browsers in real-time</p></div>
+    <div class="feature-card"><div class="icon">🔒</div><h3>Security Hardening</h3><p>Provides no-dind variant without privileged mode, removes SSL verification bypass, restricts sudo permissions, includes health checks and vulnerability scanning</p></div>
     <div class="feature-card"><div class="icon">🌐</div><h3>Browser-Based Desktop</h3><p>No VNC client installation needed, access full Linux desktop environment directly from your browser</p></div>
     <div class="feature-card"><div class="icon">📦</div><h3>Environment Isolation</h3><p>OpenClaw, desktop, and dependencies all run inside containers without polluting the host system</p></div>
     <div class="feature-card"><div class="icon">⚡</div><h3>One-Click Deployment</h3><p>Complete installation with a single command, supporting full lifecycle management: install / upgrade / restart / uninstall</p></div>
@@ -239,6 +240,8 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
     <div class="feature-card"><div class="icon">🦞</div><h3>Large-Scale Deployment</h3><p>Standardized container solution enables large-scale lobster deployment, unified management of multiple OpenClaw instances</p></div>
     <div class="feature-card"><div class="icon">💻</div><h3>Cross-Platform Support</h3><p>Unified experience across Windows (PowerShell) / macOS / Linux with consistent behavior</p></div>
     <div class="feature-card"><div class="icon">🐳</div><h3>Docker-in-Docker</h3><p>Built-in dockerd inside container, OpenClaw can directly create and manage child containers without extra configuration</p></div>
+    <div class="feature-card"><div class="icon">🌍</div><h3>Multi-Architecture</h3><p>Supports amd64 and arm64 architectures with automated builds and tests ensuring cross-platform compatibility</p></div>
+    <div class="feature-card"><div class="icon">🔄</div><h3>CI/CD Automation</h3><p>GitHub Actions automatically builds 4 image variants with integrated security scanning and functional testing</p></div>
   </div>
 </div>
 </section>
@@ -248,32 +251,92 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
 <div class="container">
   <div class="section-title">
     <h2>Quick Install</h2>
-    <p>Choose your operating system and copy the command to get started</p>
+    <p>Choose installation method: one-click script or Docker image</p>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('win')">Windows</button>
-    <button class="tab-btn" onclick="switchTab('mac')">macOS</button>
-    <button class="tab-btn" onclick="switchTab('linux')">Linux</button>
+    <button class="tab-btn active" onclick="switchTab('script')">One-Click Script</button>
+    <button class="tab-btn" onclick="switchTab('docker')">Docker Image</button>
   </div>
-  <div id="tab-win" class="tab-content active">
-    <div class="code-block">
-      <button class="copy-btn" onclick="copyCode('code-win',this)">Copy</button>
-      <pre id="code-win">irm https://claw.ihasy.com/openclaw-kasmvnc.ps1 | iex</pre>
+  <div id="tab-script" class="tab-content active">
+    <div style="margin-bottom:20px">
+      <div class="tabs" style="margin-bottom:12px">
+        <button class="tab-btn active" onclick="switchTab('win')">Windows</button>
+        <button class="tab-btn" onclick="switchTab('mac')">macOS</button>
+        <button class="tab-btn" onclick="switchTab('linux')">Linux</button>
+      </div>
+      <div id="tab-win" class="tab-content active">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode('code-win',this)">Copy</button>
+          <pre id="code-win">irm https://claw.ihasy.com/openclaw-kasmvnc.ps1 | iex</pre>
+        </div>
+      </div>
+      <div id="tab-mac" class="tab-content">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode('code-mac',this)">Copy</button>
+          <pre id="code-mac">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc.sh | bash -s -- install</pre>
+        </div>
+      </div>
+      <div id="tab-linux" class="tab-content">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode('code-linux',this)">Copy</button>
+          <pre id="code-linux">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc.sh | bash -s -- install</pre>
+        </div>
+      </div>
     </div>
+    <p style="color:var(--text3);font-size:.85rem;text-align:center">Prerequisites: Docker (with Docker Compose v2) · Windows requires PowerShell 5+ · macOS/Linux requires Bash</p>
   </div>
-  <div id="tab-mac" class="tab-content">
-    <div class="code-block">
-      <button class="copy-btn" onclick="copyCode('code-mac',this)">Copy</button>
-      <pre id="code-mac">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc.sh | bash -s -- install</pre>
+  <div id="tab-docker" class="tab-content">
+    <div class="config-section" style="margin-bottom:16px">
+      <h3>Chinese Version (China Mirrors + DinD)</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode('code-docker-cn',this)">Copy</button>
+        <pre id="code-docker-cn">docker run -d \
+  --name openclaw-kasmvnc \
+  --privileged \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest</pre>
+      </div>
     </div>
-  </div>
-  <div id="tab-linux" class="tab-content">
-    <div class="code-block">
-      <button class="copy-btn" onclick="copyCode('code-linux',this)">Copy</button>
-      <pre id="code-linux">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc.sh | bash -s -- install</pre>
+    <div class="config-section" style="margin-bottom:16px">
+      <h3>International Version (Official Sources + DinD)</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode('code-docker-intl',this)">Copy</button>
+        <pre id="code-docker-intl">docker run -d \
+  --name openclaw-kasmvnc \
+  --privileged \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -e USE_CN_MIRROR=0 \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest-intl</pre>
+      </div>
     </div>
+    <div class="config-section">
+      <h3>No-DinD Version (More Secure)</h3>
+      <p class="desc">If you don't need OpenClaw to manage sub-containers, use the no-dind variant for better security (no --privileged required):</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode('code-docker-nodind',this)">Copy</button>
+        <pre id="code-docker-nodind">docker run -d \
+  --name openclaw-kasmvnc \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest-intl-no-dind</pre>
+      </div>
+    </div>
+    <p style="color:var(--text3);font-size:.85rem;margin-top:16px;text-align:center">For more image variants and configuration, see <a href="https://github.com/ddong8/openclaw-kasmvnc/blob/main/DOCKER-en.md" target="_blank">DOCKER-en.md</a></p>
   </div>
-  <p style="color:var(--text3);font-size:.85rem;margin-top:16px;text-align:center">Prerequisites: Docker (with Docker Compose v2) · Windows requires PowerShell 5+ · macOS/Linux requires Bash</p>
 </div>
 </section>
 
@@ -362,6 +425,21 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
 <!-- Commands -->
 <section id="commands">
 <div class="container">
+  <div class="section-title">
+    <h2>Docker Image Variants</h2>
+    <p>4 pre-built image variants for different use cases</p>
+  </div>
+  <div style="overflow-x:auto;margin-bottom:48px">
+  <table class="model-table">
+    <thead><tr><th>Image Tag</th><th>Description</th><th>Use Case</th></tr></thead>
+    <tbody>
+      <tr><td>latest</td><td>Chinese + China Mirrors + DinD</td><td>Chinese users, need Docker-in-Docker</td></tr>
+      <tr><td>latest-intl</td><td>International + Official Sources + DinD</td><td>International users, need Docker-in-Docker</td></tr>
+      <tr><td>latest-no-dind</td><td>Chinese + China Mirrors + No DinD</td><td>Chinese users, no sub-containers (more secure)</td></tr>
+      <tr><td>latest-intl-no-dind</td><td>International + Official Sources + No DinD</td><td>International users, no sub-containers (more secure)</td></tr>
+    </tbody>
+  </table>
+  </div>
   <div class="section-title">
     <h2>Common Commands</h2>
     <p>Full lifecycle management with a single script</p>

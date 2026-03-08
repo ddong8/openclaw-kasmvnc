@@ -232,6 +232,7 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
   <div class="features-grid">
     <div class="feature-card"><div class="icon">🔧</div><h3>容器内完整生命周期</h3><p>官方 Docker 方案无 systemd 导致无法容器内重启/升级。本项目通过 systemctl shim 完美解决，支持容器内 restart、upgrade 等全生命周期管理</p></div>
     <div class="feature-card"><div class="icon">👁️</div><h3>可视化桌面环境</h3><p>云厂商一键部署只有命令行，无法观察 Agent 操作。本项目提供完整 XFCE 桌面，实时查看 OpenClaw 操作浏览器过程</p></div>
+    <div class="feature-card"><div class="icon">🔒</div><h3>安全加固</h3><p>提供 no-dind 变体无需 privileged 权限，移除 SSL 验证绕过，限制 sudo 权限，内置健康检查和漏洞扫描</p></div>
     <div class="feature-card"><div class="icon">🌐</div><h3>浏览器直连桌面</h3><p>无需安装 VNC 客户端，打开浏览器即可访问完整 Linux 桌面环境</p></div>
     <div class="feature-card"><div class="icon">📦</div><h3>环境隔离</h3><p>OpenClaw、桌面、依赖全部运行在容器内，不污染宿主机系统</p></div>
     <div class="feature-card"><div class="icon">⚡</div><h3>一键部署</h3><p>一条命令完成安装，支持 install / upgrade / restart / uninstall 全生命周期管理</p></div>
@@ -239,6 +240,8 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
     <div class="feature-card"><div class="icon">🦞</div><h3>大规模部署</h3><p>标准化容器方案使大规模部署龙虾成为可能，统一管理多个 OpenClaw 实例</p></div>
     <div class="feature-card"><div class="icon">💻</div><h3>跨平台支持</h3><p>Windows (PowerShell) / macOS / Linux 三平台统一体验，行为一致</p></div>
     <div class="feature-card"><div class="icon">🐳</div><h3>Docker-in-Docker</h3><p>容器内内置 dockerd，OpenClaw 可直接创建和管理子容器，无需额外配置</p></div>
+    <div class="feature-card"><div class="icon">🌍</div><h3>多架构支持</h3><p>支持 amd64 和 arm64 架构，自动构建和测试，确保跨平台兼容性</p></div>
+    <div class="feature-card"><div class="icon">🔄</div><h3>CI/CD 自动化</h3><p>GitHub Actions 自动构建 4 个镜像变体，集成安全扫描和功能测试</p></div>
   </div>
 </div>
 </section>
@@ -248,32 +251,92 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
 <div class="container">
   <div class="section-title">
     <h2>快速安装</h2>
-    <p>选择你的操作系统，复制命令即可开始</p>
+    <p>选择安装方式：一键脚本或 Docker 镜像</p>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('win')">Windows</button>
-    <button class="tab-btn" onclick="switchTab('mac')">macOS</button>
-    <button class="tab-btn" onclick="switchTab('linux')">Linux</button>
+    <button class="tab-btn active" onclick="switchTab('script')">一键脚本</button>
+    <button class="tab-btn" onclick="switchTab('docker')">Docker 镜像</button>
   </div>
-  <div id="tab-win" class="tab-content active">
-    <div class="code-block">
-      <button class="copy-btn" onclick="copyCode('code-win',this)">复制</button>
-      <pre id="code-win">irm https://claw.ihasy.com/openclaw-kasmvnc-zh.ps1 | iex</pre>
+  <div id="tab-script" class="tab-content active">
+    <div style="margin-bottom:20px">
+      <div class="tabs" style="margin-bottom:12px">
+        <button class="tab-btn active" onclick="switchTab('win')">Windows</button>
+        <button class="tab-btn" onclick="switchTab('mac')">macOS</button>
+        <button class="tab-btn" onclick="switchTab('linux')">Linux</button>
+      </div>
+      <div id="tab-win" class="tab-content active">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode('code-win',this)">复制</button>
+          <pre id="code-win">irm https://claw.ihasy.com/openclaw-kasmvnc-zh.ps1 | iex</pre>
+        </div>
+      </div>
+      <div id="tab-mac" class="tab-content">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode('code-mac',this)">复制</button>
+          <pre id="code-mac">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc-zh.sh | bash -s -- install</pre>
+        </div>
+      </div>
+      <div id="tab-linux" class="tab-content">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode('code-linux',this)">复制</button>
+          <pre id="code-linux">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc-zh.sh | bash -s -- install</pre>
+        </div>
+      </div>
     </div>
+    <p style="color:var(--text3);font-size:.85rem;text-align:center">前置条件：Docker（含 Docker Compose v2）· Windows 需 PowerShell 5+ · macOS/Linux 需 Bash</p>
   </div>
-  <div id="tab-mac" class="tab-content">
-    <div class="code-block">
-      <button class="copy-btn" onclick="copyCode('code-mac',this)">复制</button>
-      <pre id="code-mac">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc-zh.sh | bash -s -- install</pre>
+  <div id="tab-docker" class="tab-content">
+    <div class="config-section" style="margin-bottom:16px">
+      <h3>中文版（国内镜像 + DinD）</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode('code-docker-cn',this)">复制</button>
+        <pre id="code-docker-cn">docker run -d \
+  --name openclaw-kasmvnc \
+  --privileged \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest</pre>
+      </div>
     </div>
-  </div>
-  <div id="tab-linux" class="tab-content">
-    <div class="code-block">
-      <button class="copy-btn" onclick="copyCode('code-linux',this)">复制</button>
-      <pre id="code-linux">curl -fsSL https://claw.ihasy.com/openclaw-kasmvnc-zh.sh | bash -s -- install</pre>
+    <div class="config-section" style="margin-bottom:16px">
+      <h3>国际版（官方源 + DinD）</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode('code-docker-intl',this)">复制</button>
+        <pre id="code-docker-intl">docker run -d \
+  --name openclaw-kasmvnc \
+  --privileged \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -e USE_CN_MIRROR=0 \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest-intl</pre>
+      </div>
     </div>
+    <div class="config-section">
+      <h3>无 DinD 版本（更安全）</h3>
+      <p class="desc">如果不需要 OpenClaw 管理子容器，使用 no-dind 变体可提高安全性（无需 --privileged）：</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode('code-docker-nodind',this)">复制</button>
+        <pre id="code-docker-nodind">docker run -d \
+  --name openclaw-kasmvnc \
+  --shm-size=2g \
+  -p 18789:18789 \
+  -p 8443:8444 \
+  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
+  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ddong8/openclaw-kasmvnc:latest-no-dind</pre>
+      </div>
+    </div>
+    <p style="color:var(--text3);font-size:.85rem;margin-top:16px;text-align:center">更多镜像变体和配置请参考 <a href="https://github.com/ddong8/openclaw-kasmvnc/blob/main/DOCKER.md" target="_blank">DOCKER.md</a></p>
   </div>
-  <p style="color:var(--text3);font-size:.85rem;margin-top:16px;text-align:center">前置条件：Docker（含 Docker Compose v2）· Windows 需 PowerShell 5+ · macOS/Linux 需 Bash</p>
 </div>
 </section>
 
@@ -362,6 +425,21 @@ footer .footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:
 <!-- Commands -->
 <section id="commands">
 <div class="container">
+  <div class="section-title">
+    <h2>Docker 镜像变体</h2>
+    <p>4 个预构建镜像变体，满足不同使用场景</p>
+  </div>
+  <div style="overflow-x:auto;margin-bottom:48px">
+  <table class="model-table">
+    <thead><tr><th>镜像标签</th><th>说明</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td>latest</td><td>中文版 + 国内镜像 + DinD</td><td>国内用户，需要 Docker-in-Docker</td></tr>
+      <tr><td>latest-intl</td><td>国际版 + 官方源 + DinD</td><td>国外用户，需要 Docker-in-Docker</td></tr>
+      <tr><td>latest-no-dind</td><td>中文版 + 国内镜像 + 无 DinD</td><td>国内用户，不需要子容器（更安全）</td></tr>
+      <tr><td>latest-intl-no-dind</td><td>国际版 + 官方源 + 无 DinD</td><td>国外用户，不需要子容器（更安全）</td></tr>
+    </tbody>
+  </table>
+  </div>
   <div class="section-title">
     <h2>常用命令</h2>
     <p>全生命周期管理，一个脚本搞定</p>
