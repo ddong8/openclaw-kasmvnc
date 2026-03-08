@@ -190,20 +190,23 @@ ARG HTTPS_PROXY
 
 # Install OpenClaw via npm (pre-built, includes correct version metadata)
 # Configure npm registry and force git to use HTTPS, preserving optional dependencies
-# Disable SSL verification for git to prevent issues with proxies
+# Install OpenClaw via npm
 ARG OPENC_CACHE_BUST=1
 RUN npm config set registry https://registry.npmjs.org \
  && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\" \
  && git config --global url.\"https://github.com/\".insteadOf \"ssh://git@github.com/\" \
  && git config --global url.\"https://\".insteadOf \"git://\" \
- && git config --global http.sslVerify false \
- && npm install -g openclaw@latest \
+ && npm install -g openclaw@latest --no-audit --no-fund \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
-ENV PATH="/opt/KasmVNC/bin:${PATH}"
-ENV TZ=UTC
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US:en
-ENV LC_ALL=en_US.UTF-8
+
+# Configure timezone and locale (can be overridden via build args)
+ARG TZ=UTC
+ARG LANG=en_US.UTF-8
+ENV PATH="/opt/KasmVNC/bin:`${PATH}"
+ENV TZ=`${TZ}
+ENV LANG=`${LANG}
+ENV LANGUAGE=`${LANG%.*}:`${LANG%%_*}
+ENV LC_ALL=`${LANG}
 
 ARG KASMVNC_VERSION=1.3.0
 ARG TARGETARCH
@@ -237,9 +240,9 @@ RUN apt-get update \
 
 # Install Docker CE for Docker-in-Docker support (only if NO_DIND != 1)
 ARG NO_DIND=0
-RUN if [ "${NO_DIND}" != "1" ]; then \
+RUN if [ "`${NO_DIND}" != "1" ]; then \
   curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bookworm stable" \
+  && echo "deb [arch=`${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bookworm stable" \
      > /etc/apt/sources.list.d/docker.list \
   && apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing \
@@ -302,6 +305,9 @@ RUN sed -i 's/\r$//' /usr/local/bin/systemctl /usr/local/bin/kasmvnc-startup \
 USER node
 
 EXPOSE 18789 18790 8443 8444
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:18789/ || exit 1
 
 ENTRYPOINT ["kasmvnc-startup"]
 CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]

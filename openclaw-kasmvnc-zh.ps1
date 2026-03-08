@@ -214,20 +214,22 @@ ARG HTTPS_PROXY
 
 # Install OpenClaw via npm (pre-built, includes correct version metadata)
 # Configure npm registry and force git to use HTTPS, preserving optional dependencies
-# Disable SSL verification for git to prevent issues with proxies
 ARG OPENC_CACHE_BUST=1
 RUN npm config set registry https://registry.npmmirror.com \
  && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\" \
  && git config --global url.\"https://github.com/\".insteadOf \"ssh://git@github.com/\" \
  && git config --global url.\"https://\".insteadOf \"git://\" \
- && git config --global http.sslVerify false \
  && npm install -g openclaw@latest --no-audit --no-fund \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
-ENV PATH="/opt/KasmVNC/bin:${PATH}"
-ENV TZ=Asia/Shanghai
-ENV LANG=zh_CN.UTF-8
-ENV LANGUAGE=zh_CN:zh
-ENV LC_ALL=zh_CN.UTF-8
+
+# Configure timezone and locale (can be overridden via build args)
+ARG TZ=Asia/Shanghai
+ARG LANG=zh_CN.UTF-8
+ENV PATH="/opt/KasmVNC/bin:`${PATH}"
+ENV TZ=`${TZ}
+ENV LANG=`${LANG}
+ENV LANGUAGE=`${LANG%.*}:`${LANG%%_*}
+ENV LC_ALL=`${LANG}
 ENV GTK_IM_MODULE=fcitx
 ENV QT_IM_MODULE=fcitx
 ENV XMODIFIERS=@im=fcitx
@@ -270,9 +272,9 @@ RUN apt-get update \
 
 # Install Docker CE for Docker-in-Docker support using Aliyun mirror (only if NO_DIND != 1)
 ARG NO_DIND=0
-RUN if [ "${NO_DIND}" != "1" ]; then \
+RUN if [ "`${NO_DIND}" != "1" ]; then \
   curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bookworm stable" \
+  && echo "deb [arch=`${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bookworm stable" \
      > /etc/apt/sources.list.d/docker.list \
   && apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing \
@@ -350,6 +352,9 @@ RUN im-config -n fcitx5
 USER node
 
 EXPOSE 18789 18790 8443 8444
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:18789/ || exit 1
 
 ENTRYPOINT ["kasmvnc-startup"]
 CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
