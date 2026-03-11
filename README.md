@@ -50,7 +50,7 @@ docker run -d \
   -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
   -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
   -v ~/.openclaw:/home/node/.openclaw \
-  ddong8/openclaw-kasmvnc:latest
+  ddong8/openclaw-kasmvnc:latest-intl
 ```
 
 > 📖 Full documentation: [DOCKER.md](DOCKER.md)
