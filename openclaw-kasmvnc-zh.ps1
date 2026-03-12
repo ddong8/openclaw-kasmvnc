@@ -342,16 +342,12 @@ RUN curl -fsSL https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/ri
 
 # 安装 VS Code
 RUN set -eux; \
-  case "`${TARGETARCH}" in \
-    amd64) vscode_arch="amd64" ;; \
-    arm64) vscode_arch="arm64" ;; \
-    *) echo "Unsupported TARGETARCH: `${TARGETARCH}" >&2; exit 1 ;; \
-  esac; \
-  wget -qO- https://mirrors.tuna.tsinghua.edu.cn/microsoft/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg; \
-  echo "deb [arch=`${vscode_arch} signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://mirrors.tuna.tsinghua.edu.cn/microsoft/repos/code stable main" \
+  mkdir -p /etc/apt/keyrings; \
+  wget -qO- https://mirrors.tuna.tsinghua.edu.cn/microsoft/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/microsoft-archive-keyring.gpg; \
+  echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/microsoft/repos/code stable main" \
     > /etc/apt/sources.list.d/vscode.list; \
   apt-get update; \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing code; \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends code; \
   rm -rf /var/lib/apt/lists/*
 
 # 创建 Chromium 和 VS Code 桌面图标

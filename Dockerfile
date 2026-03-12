@@ -172,22 +172,18 @@ RUN if [ "${USE_CN_MIRROR}" = "1" ]; then \
 
 # Install VS Code
 RUN set -eux; \
-  case "${TARGETARCH}" in \
-    amd64) vscode_arch="amd64" ;; \
-    arm64) vscode_arch="arm64" ;; \
-    *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
-  esac; \
+  mkdir -p /etc/apt/keyrings; \
   if [ "${USE_CN_MIRROR}" = "1" ]; then \
-    wget -qO- https://mirrors.tuna.tsinghua.edu.cn/microsoft/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg; \
-    echo "deb [arch=${vscode_arch} signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://mirrors.tuna.tsinghua.edu.cn/microsoft/repos/code stable main" \
+    wget -qO- https://mirrors.tuna.tsinghua.edu.cn/microsoft/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/microsoft-archive-keyring.gpg; \
+    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/microsoft/repos/code stable main" \
       > /etc/apt/sources.list.d/vscode.list; \
   else \
-    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg; \
-    echo "deb [arch=${vscode_arch} signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" \
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/microsoft-archive-keyring.gpg; \
+    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main" \
       > /etc/apt/sources.list.d/vscode.list; \
   fi; \
   apt-get update; \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing code; \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends code; \
   rm -rf /var/lib/apt/lists/*
 
 # Create desktop icons for Chromium and VS Code
