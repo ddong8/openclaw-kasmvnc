@@ -340,13 +340,11 @@ RUN curl -fsSL https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/ri
     > /home/node/.local/share/fcitx5/rime/default.custom.yaml \
   && chown -R node:node /home/node/.local
 
-# 安装 VS Code
+# 安装 VS Code（清华镜像无此仓库，统一使用官方源）
 RUN set -eux; \
   mkdir -p /etc/apt/keyrings; \
-  # GPG 密钥始终从官方下载（镜像站不提供）
   wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/microsoft-archive-keyring.gpg; \
-  # 软件包使用清华镜像
-  echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/microsoft/repos/code stable main" \
+  echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main" \
     > /etc/apt/sources.list.d/vscode.list; \
   apt-get update; \
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends code; \

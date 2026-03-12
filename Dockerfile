@@ -173,16 +173,9 @@ RUN if [ "${USE_CN_MIRROR}" = "1" ]; then \
 # Install VS Code
 RUN set -eux; \
   mkdir -p /etc/apt/keyrings; \
-  # Always download GPG key from official Microsoft (not mirrored)
   wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/microsoft-archive-keyring.gpg; \
-  # Choose repository based on USE_CN_MIRROR
-  if [ "${USE_CN_MIRROR}" = "1" ]; then \
-    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/microsoft/repos/code stable main" \
-      > /etc/apt/sources.list.d/vscode.list; \
-  else \
-    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main" \
-      > /etc/apt/sources.list.d/vscode.list; \
-  fi; \
+  echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main" \
+    > /etc/apt/sources.list.d/vscode.list; \
   apt-get update; \
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends code; \
   rm -rf /var/lib/apt/lists/*
