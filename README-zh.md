@@ -50,9 +50,11 @@ docker run -d \
   -p 8443:8444 \
   -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
   -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
-  -v ~/.openclaw:/home/node/.openclaw \
+  -v ~/openclaw-data:/home/node \
   ddong8/openclaw-kasmvnc:latest
 ```
+
+**数据持久化：** 挂载 `~/openclaw-data:/home/node` 可持久化所有用户数据，包括 OpenClaw 配置、VS Code 设置、Git 凭证和桌面文件。
 
 > 📖 详细文档：[DOCKER.md](DOCKER.md)
 

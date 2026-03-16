@@ -137,8 +137,7 @@ services:
       NO_PROXY: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
       no_proxy: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
     volumes:
-      - ${OPENCLAW_CONFIG_DIR:-./.openclaw}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR:-./.openclaw/workspace}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_DATA_DIR:-./openclaw-data}:/home/node
     ports:
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
       - "${OPENCLAW_GATEWAY_BRIDGE_PORT:-18790}:18790"

@@ -49,9 +49,11 @@ docker run -d \
   -p 8443:8444 \
   -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
   -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
-  -v ~/.openclaw:/home/node/.openclaw \
+  -v ~/openclaw-data:/home/node \
   ddong8/openclaw-kasmvnc:latest-intl
 ```
+
+**Data Persistence:** Mounting `~/openclaw-data:/home/node` persists all user data including OpenClaw configs, VS Code settings, Git credentials, and desktop files.
 
 > 📖 Full documentation: [DOCKER.md](DOCKER.md)
 
