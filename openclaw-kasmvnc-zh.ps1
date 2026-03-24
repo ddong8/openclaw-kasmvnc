@@ -72,21 +72,22 @@ function Upsert-EnvLine {
     [string]$Value
   )
   $line = "$Key=$Value"
+  $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
   if (-not (Test-Path $FilePath)) {
-    Set-Content -Path $FilePath -Value $line -Encoding UTF8
+    [System.IO.File]::WriteAllText($FilePath, "$line`n", $utf8NoBom)
     return
   }
-  $content = Get-Content -Path $FilePath -Raw -Encoding UTF8
+  $content = [System.IO.File]::ReadAllText($FilePath, $utf8NoBom)
   if ($content -match "(?m)^$([regex]::Escape($Key))=") {
     $updated = [regex]::Replace(
       $content,
       "(?m)^$([regex]::Escape($Key))=.*$",
       [System.Text.RegularExpressions.MatchEvaluator] { param($m) $line }
     )
-    Set-Content -Path $FilePath -Value $updated -Encoding UTF8
+    [System.IO.File]::WriteAllText($FilePath, $updated, $utf8NoBom)
   }
   else {
-    Add-Content -Path $FilePath -Value "`r`n$line" -Encoding UTF8
+    [System.IO.File]::AppendAllText($FilePath, "`n$line", $utf8NoBom)
   }
 }
 
@@ -224,11 +225,11 @@ RUN npm config set registry https://registry.npmmirror.com \
 # Configure timezone and locale (can be overridden via build args)
 ARG TZ=Asia/Shanghai
 ARG LANG=zh_CN.UTF-8
-ENV PATH="/opt/KasmVNC/bin:`${PATH}"
-ENV TZ=`${TZ}
-ENV LANG=`${LANG}
-ENV LANGUAGE=`${LANG%.*}:`${LANG%%_*}
-ENV LC_ALL=`${LANG}
+ENV PATH="/opt/KasmVNC/bin:${PATH}"
+ENV TZ=${TZ}
+ENV LANG=${LANG}
+ENV LANGUAGE=zh_CN:zh
+ENV LC_ALL=${LANG}
 ENV GTK_IM_MODULE=fcitx
 ENV QT_IM_MODULE=fcitx
 ENV XMODIFIERS=@im=fcitx
@@ -250,6 +251,7 @@ RUN apt-get update \
     fcitx5-frontend-qt5 \
     fcitx5-config-qt \
     im-config \
+    jq \
     libdatetime-perl \
     libegl1 \
     libglu1-mesa \
@@ -273,9 +275,9 @@ RUN apt-get update \
 
 # Install Docker CE for Docker-in-Docker support using Aliyun mirror (only if NO_DIND != 1)
 ARG NO_DIND=0
-RUN if [ "`${NO_DIND}" != "1" ]; then \
+RUN if [ "${NO_DIND}" != "1" ]; then \
   curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-  && echo "deb [arch=`${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bookworm stable" \
+  && echo "deb [arch=${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bookworm stable" \
      > /etc/apt/sources.list.d/docker.list \
   && apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing \
@@ -391,6 +393,8 @@ CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
   # 清理残留 VNC 状态 → 覆写 KasmVNC 剪贴板配置 → 启动 VNC 服务器 + XFCE 桌面 →
   # 最后执行 CMD 传入的命令（通常是 openclaw gateway）并 sleep infinity 保持容器存活
   @'
+#!/usr/bin/env bash
+set -euo pipefail
 
 export HOME="${HOME:-/home/node}"
 export USER="${USER:-node}"
@@ -432,7 +436,7 @@ if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -
 fi
 
 # Ensure interactive shells call openclaw directly (no throttling alias)
-sed -i '/^alias openclaw=/d' "`${HOME}/.bashrc" 2>/dev/null || true
+sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
 # Configure NPM registry
 cat > "${HOME}/.npmrc" <<'EONPMRC'
@@ -562,24 +566,24 @@ if command -v xdg-settings >/dev/null 2>&1; then
 fi
 
 # ── 清理配置文件中的平台指纹（保留 auth tokens）──
-if [ -f "`${HOME}/.openclaw/openclaw.json" ]; then
+if [ -f "${HOME}/.openclaw/openclaw.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     jq 'del(.identity.pinnedPlatform, .identity.pinnedDeviceFamily)' \
-      "`${HOME}/.openclaw/openclaw.json" > "`${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
-      && mv "`${HOME}/.openclaw/openclaw.json.tmp" "`${HOME}/.openclaw/openclaw.json" || true
+      "${HOME}/.openclaw/openclaw.json" > "${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
+      && mv "${HOME}/.openclaw/openclaw.json.tmp" "${HOME}/.openclaw/openclaw.json" || true
   else
-    if grep -q '\"pinnedPlatform\".*\"darwin\"' "`${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
-       grep -q '\"pinnedPlatform\".*\"win32\"' "`${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
+    if grep -q '\"pinnedPlatform\".*\"darwin\"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
+       grep -q '\"pinnedPlatform\".*\"win32\"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
       echo "Detected non-Linux platform config, backing up..." >&2
-      mv "`${HOME}/.openclaw/openclaw.json" "`${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
+      mv "${HOME}/.openclaw/openclaw.json" "${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
     fi
   fi
 fi
 
 # ── 确保 systemd service 文件存在（支持 install/uninstall 命令）──
-if [ ! -f "`${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
-  mkdir -p "`${HOME}/.config/systemd/user"
-  cat > "`${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
+if [ ! -f "${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
+  mkdir -p "${HOME}/.config/systemd/user"
+  cat > "${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
 [Unit]
 Description=OpenClaw Gateway (managed by supervisor)
 After=network-online.target
@@ -600,7 +604,7 @@ rm -f /tmp/openclaw-gateway.stopped
 
 
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
-openclaw config set gateway.bind "`${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
+openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
 # 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
 # 设置环境变量让 gateway 知道有 supervisor 管理
@@ -747,7 +751,7 @@ case "$action" in
     touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
     [ -z "$pid" ] && exit 0
-    kill -TERM "$pid" 2>/dev/null || exit $?
+    kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then exit 0; fi
       sleep 0.25
@@ -789,7 +793,7 @@ function Assert-GatewayRunning {
 # 检查安装目录是否存在，不存在则提示用户先执行 install
 function Require-InstallDir {
   if (-not (Test-Path $InstallDir)) {
-    throw "Install directory not found: $InstallDir. Run '.\openclaw-kasmvnc.ps1 -Command install' first."
+    throw "Install directory not found: $InstallDir. Run '.\openclaw-kasmvnc-zh.ps1 -Command install' first."
   }
 }
 
@@ -798,25 +802,21 @@ function Require-InstallDir {
 # 写入 .env 配置 → docker compose up --build → 验证网关就绪
 function Install-Command {
   Assert-Command -Name "docker"
-  try {
-    docker compose version | Out-Null
-  }
-  catch {
+  docker compose version 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
     throw "Missing Docker Compose v2 plugin: 'docker compose'"
   }
 
   # 确保基础镜像可用：优先使用官方镜像，失败则从镜像站下载
   Write-Host "Checking base image: node:22-bookworm"
-  try {
-    docker image inspect node:22-bookworm 2>$null | Out-Null
+  docker image inspect node:22-bookworm 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) {
     Write-Host "Base image already exists locally"
   }
-  catch {
+  else {
     Write-Host "Pulling node:22-bookworm from Docker Hub..."
-    try {
-      docker pull node:22-bookworm 2>$null | Out-Null
-    }
-    catch {
+    docker pull node:22-bookworm 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
       Write-Host "Failed to pull from Docker Hub, downloading from mirror..."
       # 检测系统架构
       $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
@@ -840,7 +840,8 @@ function Install-Command {
         try {
           Invoke-WebRequest -Uri $mirrorUrl -OutFile $tmpFile -UseBasicParsing
           Write-Host "Loading image from mirror..."
-          Get-Content $tmpFile -Raw | docker load
+          docker load -i $tmpFile
+          if ($LASTEXITCODE -ne 0) { throw "docker load failed with exit code $LASTEXITCODE" }
           Remove-Item $tmpFile -Force
           $downloadSuccess = $true
           break

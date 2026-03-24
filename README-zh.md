@@ -292,7 +292,7 @@ openclaw gateway status --probe   # 查看状态
 
 ## 修改配置后如何生效
 
-常见配置位置：`<安装目录>/openclaw/.env`、`<安装目录>/openclaw/.openclaw/openclaw.json`
+常见配置位置：`<安装目录>/.env`、`<安装目录>/.openclaw/openclaw.json`
 
 1. 修改配置文件
 2. 执行 `restart`
@@ -320,47 +320,47 @@ openclaw gateway status --probe   # 查看状态
 powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc-zh.ps1 -Command install -NoCache
 ```
 
-### 3. 端口被占用
+### 2. 端口被占用
 
 安装时改端口：Windows `-GatewayPort 28789 -HttpsPort 9443`，macOS/Linux `--gateway-port 28789 --https-port 9443`，然后重新 `install`。
 
-### 4. KasmVNC 提示 HTTPS 证书不安全
+### 3. KasmVNC 提示 HTTPS 证书不安全
 
 默认使用容器自签名证书，属于正常现象。在浏览器选择继续访问，或自行配置反向代理（Nginx/Caddy）。
 
-### 5. Fcitx5 默认未激活中文
+### 4. Fcitx5 默认未激活中文
 
 旧卷配置冲突导致。处理：
 1. 宿主机执行 `upgrade`
 2. VNC 终端执行 `rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml ~/.config/autostart/fcitx5.desktop`
 3. 桌面菜单 → Log Out → 刷新页面重新进入
 
-### 6. 进入桌面后黑屏
+### 5. 进入桌面后黑屏
 
 依次尝试：`restart` → `status` → `logs --tail 200` → `upgrade`。
 
-### 7. 容器反复重启
+### 6. 容器反复重启
 
 常见原因：`.env` 缺参数、目录权限异常、端口冲突。重新 `install` 或更换端口。
 
-### 8. macOS 上 `chown: Operation not permitted`
+### 7. macOS 上 `chown: Operation not permitted`
 
 macOS M 系列部分挂载路径会出现此提示，容器运行正常则可安全忽略。
 
-### 9. 为什么用 Chromium 而不是 Chrome？
+### 8. 为什么用 Chromium 而不是 Chrome？
 
 1. **多架构兼容** — Google 未提供 ARM64 Chrome，Chromium 是唯一同时适配 x86_64 和 arm64 的方案
 2. **版权合规** — Chrome 含闭源插件（DRM 等），不适合打包到公有镜像
 3. **依赖纯净** — `apt install` 的 Chromium 与系统库无缝兼容，无需第三方源
 
-### 10. 升级后中文输入法不是默认首选
+### 9. 升级后中文输入法不是默认首选
 
 旧版配置持久化导致。VNC 终端执行后断开重连：
 ```bash
 rm -rf ~/.config/fcitx5 ~/.local/share/fcitx5/rime/default.custom.yaml ~/.config/dconf
 ```
 
-### 11. 日志太多
+### 10. 日志太多
 
 用 `logs --tail 200` 看最近日志，`logs --tail 50` 快速定位报错。
 

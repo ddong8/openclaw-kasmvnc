@@ -7,6 +7,7 @@ RUN rm -f /etc/dpkg/dpkg.cfg.d/docker && rm -f /etc/apt/apt.conf.d/docker-clean
 
 # Accept build arguments early
 ARG USE_CN_MIRROR=1
+ENV USE_CN_MIRROR=${USE_CN_MIRROR}
 
 # Configure apt to use Tsinghua mirror for faster downloads in China (only if USE_CN_MIRROR=1)
 RUN if [ "${USE_CN_MIRROR}" = "1" ]; then \
@@ -40,10 +41,11 @@ RUN if [ "${USE_CN_MIRROR}" = "1" ]; then \
 # Configure timezone and locale (can be overridden via build args)
 ARG TZ=Asia/Shanghai
 ARG LANG=zh_CN.UTF-8
+ARG LANGUAGE=zh_CN:zh
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
 ENV TZ=${TZ}
 ENV LANG=${LANG}
-ENV LANGUAGE=${LANG%.*}:${LANG%%_*}
+ENV LANGUAGE=${LANGUAGE}
 ENV LC_ALL=${LANG}
 ENV GTK_IM_MODULE=fcitx
 ENV QT_IM_MODULE=fcitx
@@ -83,9 +85,9 @@ RUN apt-get update \
     xterm \
   && ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
   && echo "${TZ}" > /etc/timezone \
-  && sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen \
-  && locale-gen zh_CN.UTF-8 \
-  && update-locale LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 \
+  && sed -i "s/^# *${LANG} UTF-8/${LANG} UTF-8/" /etc/locale.gen \
+  && locale-gen ${LANG} \
+  && update-locale LANG=${LANG} LC_ALL=${LANG} \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Docker CE for Docker-in-Docker support using Aliyun mirror (only if NO_DIND != 1)

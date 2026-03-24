@@ -268,10 +268,10 @@ RUN npm config set registry https://registry.npmjs.org \
 ARG TZ=UTC
 ARG LANG=en_US.UTF-8
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
-ENV TZ=\${TZ}
-ENV LANG=\${LANG}
-ENV LANGUAGE=\${LANG%.*}:\${LANG%%_*}
-ENV LC_ALL=\${LANG}
+ENV TZ=${TZ}
+ENV LANG=${LANG}
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=${LANG}
 
 ARG KASMVNC_VERSION=1.3.0
 ARG TARGETARCH
@@ -285,6 +285,7 @@ RUN apt-get update \
     dbus-x11 \
     fonts-noto-core \
     gnupg \
+    jq \
     libdatetime-perl \
     libegl1 \
     libglu1-mesa \
@@ -539,18 +540,18 @@ if command -v xdg-settings >/dev/null 2>&1; then
 fi
 
 # Clean up platform fingerprints in config (preserve auth tokens)
-if [ -f "\${HOME}/.openclaw/openclaw.json" ]; then
+if [ -f "${HOME}/.openclaw/openclaw.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     # Use jq to surgically remove only platform fields
     jq 'del(.identity.pinnedPlatform, .identity.pinnedDeviceFamily)' \
-      "\${HOME}/.openclaw/openclaw.json" > "\${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
-      && mv "\${HOME}/.openclaw/openclaw.json.tmp" "\${HOME}/.openclaw/openclaw.json" || true
+      "${HOME}/.openclaw/openclaw.json" > "${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
+      && mv "${HOME}/.openclaw/openclaw.json.tmp" "${HOME}/.openclaw/openclaw.json" || true
   else
     # Fallback: if non-Linux platform detected, backup entire config
-    if grep -q '"pinnedPlatform".*"darwin"' "\${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
-       grep -q '"pinnedPlatform".*"win32"' "\${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
+    if grep -q '"pinnedPlatform".*"darwin"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
+       grep -q '"pinnedPlatform".*"win32"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
       echo "Detected non-Linux platform config, backing up..." >&2
-      mv "\${HOME}/.openclaw/openclaw.json" "\${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
+      mv "${HOME}/.openclaw/openclaw.json" "${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
     fi
   fi
 fi
@@ -580,7 +581,7 @@ rm -f /tmp/openclaw-gateway.stopped
 # Allow Host-header origin fallback for remote access
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 # Force set gateway bind config (override possible loopback config)
-openclaw config set gateway.bind "\${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
+openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
 # Run supervisor loop in foreground (bypass systemctl to avoid double-backgrounding)
 export OPENCLAW_SERVICE_MARKER=1
@@ -640,6 +641,7 @@ DISABLED_MARKER="/tmp/openclaw-gateway.disabled"
 STOP_MARKER="/tmp/openclaw-gateway.stopped"
 
 find_gateway_pid() {
+  local pid
   pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
   if [ -n "$pid" ] && [ "$pid" != "1" ]; then
     echo "$pid"
@@ -724,7 +726,7 @@ case "$action" in
     touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
     [ -z "$pid" ] && exit 0
-    kill -TERM "$pid" 2>/dev/null || exit $?
+    kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then exit 0; fi
       sleep 0.25
@@ -812,6 +814,9 @@ install_cmd() {
     upsert_env_line .env LANG "en_US.UTF-8"
     upsert_env_line .env LANGUAGE "en_US:en"
     upsert_env_line .env LC_ALL "en_US.UTF-8"
+    if [ "${NO_DIND:-0}" = "1" ]; then
+      upsert_env_line .env NO_DIND "1"
+    fi
     if [ -n "$HTTP_PROXY_URL" ]; then
       upsert_env_line .env OPENCLAW_HTTP_PROXY "$HTTP_PROXY_URL"
     fi

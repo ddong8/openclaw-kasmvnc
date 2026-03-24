@@ -65,21 +65,22 @@ function Upsert-EnvLine {
     [string]$Value
   )
   $line = "$Key=$Value"
+  $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
   if (-not (Test-Path $FilePath)) {
-    Set-Content -Path $FilePath -Value $line -Encoding UTF8
+    [System.IO.File]::WriteAllText($FilePath, "$line`n", $utf8NoBom)
     return
   }
-  $content = Get-Content -Path $FilePath -Raw -Encoding UTF8
+  $content = [System.IO.File]::ReadAllText($FilePath, $utf8NoBom)
   if ($content -match "(?m)^$([regex]::Escape($Key))=") {
     $updated = [regex]::Replace(
       $content,
       "(?m)^$([regex]::Escape($Key))=.*$",
       [System.Text.RegularExpressions.MatchEvaluator] { param($m) $line }
     )
-    Set-Content -Path $FilePath -Value $updated -Encoding UTF8
+    [System.IO.File]::WriteAllText($FilePath, $updated, $utf8NoBom)
   }
   else {
-    Add-Content -Path $FilePath -Value "`r`n$line" -Encoding UTF8
+    [System.IO.File]::AppendAllText($FilePath, "`n$line", $utf8NoBom)
   }
 }
 
@@ -201,11 +202,11 @@ RUN npm config set registry https://registry.npmjs.org \
 # Configure timezone and locale (can be overridden via build args)
 ARG TZ=UTC
 ARG LANG=en_US.UTF-8
-ENV PATH="/opt/KasmVNC/bin:`${PATH}"
-ENV TZ=`${TZ}
-ENV LANG=`${LANG}
-ENV LANGUAGE=`${LANG%.*}:`${LANG%%_*}
-ENV LC_ALL=`${LANG}
+ENV PATH="/opt/KasmVNC/bin:${PATH}"
+ENV TZ=${TZ}
+ENV LANG=${LANG}
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=${LANG}
 
 ARG KASMVNC_VERSION=1.3.0
 ARG TARGETARCH
@@ -218,6 +219,7 @@ RUN apt-get update \
     dbus-x11 \
     fonts-noto-core \
     gnupg \
+    jq \
     libdatetime-perl \
     libegl1 \
     libglu1-mesa \
@@ -241,9 +243,9 @@ RUN apt-get update \
 
 # Install Docker CE for Docker-in-Docker support (only if NO_DIND != 1)
 ARG NO_DIND=0
-RUN if [ "`${NO_DIND}" != "1" ]; then \
+RUN if [ "${NO_DIND}" != "1" ]; then \
   curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-  && echo "deb [arch=`${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bookworm stable" \
+  && echo "deb [arch=${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bookworm stable" \
      > /etc/apt/sources.list.d/docker.list \
   && apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing \
@@ -341,6 +343,8 @@ CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
 
   # ── Generate kasmvnc-startup.sh ──
   @'
+#!/usr/bin/env bash
+set -euo pipefail
 
 export HOME="${HOME:-/home/node}"
 export USER="${USER:-node}"
@@ -379,7 +383,7 @@ if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -
 fi
 
 # Ensure interactive shells call openclaw directly (no throttling alias)
-sed -i '/^alias openclaw=/d' "`${HOME}/.bashrc" 2>/dev/null || true
+sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
 # Configure NPM registry based on USE_CN_MIRROR
 if [ "${USE_CN_MIRROR:-0}" = "1" ]; then
@@ -458,24 +462,24 @@ if command -v xdg-settings >/dev/null 2>&1; then
 fi
 
 # Clean up platform fingerprints in config (preserve auth tokens)
-if [ -f "`${HOME}/.openclaw/openclaw.json" ]; then
+if [ -f "${HOME}/.openclaw/openclaw.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     jq 'del(.identity.pinnedPlatform, .identity.pinnedDeviceFamily)' \
-      "`${HOME}/.openclaw/openclaw.json" > "`${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
-      && mv "`${HOME}/.openclaw/openclaw.json.tmp" "`${HOME}/.openclaw/openclaw.json" || true
+      "${HOME}/.openclaw/openclaw.json" > "${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
+      && mv "${HOME}/.openclaw/openclaw.json.tmp" "${HOME}/.openclaw/openclaw.json" || true
   else
-    if grep -q '\"pinnedPlatform\".*\"darwin\"' "`${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
-       grep -q '\"pinnedPlatform\".*\"win32\"' "`${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
+    if grep -q '\"pinnedPlatform\".*\"darwin\"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
+       grep -q '\"pinnedPlatform\".*\"win32\"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
       echo "Detected non-Linux platform config, backing up..." >&2
-      mv "`${HOME}/.openclaw/openclaw.json" "`${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
+      mv "${HOME}/.openclaw/openclaw.json" "${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
     fi
   fi
 fi
 
 # Ensure systemd service file exists (support install/uninstall commands)
-if [ ! -f "`${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
-  mkdir -p "`${HOME}/.config/systemd/user"
-  cat > "`${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
+if [ ! -f "${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
+  mkdir -p "${HOME}/.config/systemd/user"
+  cat > "${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
 [Unit]
 Description=OpenClaw Gateway (managed by supervisor)
 After=network-online.target
@@ -496,7 +500,7 @@ rm -f /tmp/openclaw-gateway.stopped
 
 
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
-openclaw config set gateway.bind "`${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
+openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
 # Run supervisor loop in foreground (bypass systemctl to avoid double-backgrounding)
 export OPENCLAW_SERVICE_MARKER=1
@@ -633,7 +637,7 @@ case "$action" in
     touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
     [ -z "$pid" ] && exit 0
-    kill -TERM "$pid" 2>/dev/null || exit $?
+    kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then exit 0; fi
       sleep 0.25
@@ -680,10 +684,8 @@ function Require-InstallDir {
 # ── install ───────────────────────────────────────────────────────────────────
 function Install-Command {
   Assert-Command -Name "docker"
-  try {
-    docker compose version | Out-Null
-  }
-  catch {
+  docker compose version 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
     throw "Missing Docker Compose v2 plugin: 'docker compose'"
   }
 

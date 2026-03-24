@@ -55,7 +55,7 @@ docker run -d \
 
 **Data Persistence:** Mounting `~/openclaw-data:/home/node` persists all user data including OpenClaw configs, VS Code settings, Git credentials, and desktop files.
 
-> 📖 Full documentation: [DOCKER.md](DOCKER.md)
+> 📖 Full documentation: [DOCKER-en.md](DOCKER-en.md)
 
 ### Option 2: One-Click Script
 
@@ -291,7 +291,7 @@ Desktop icons are located in `/home/node/Desktop` and can be launched with a dou
 
 ## Configuration Changes
 
-Config files: `<install-dir>/openclaw/.env`, `<install-dir>/openclaw/.openclaw/openclaw.json`
+Config files: `<install-dir>/.env`, `<install-dir>/.openclaw/openclaw.json`
 
 1. Edit the config file
 2. Run `restart`

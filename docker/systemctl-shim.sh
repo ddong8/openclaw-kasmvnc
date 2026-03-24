@@ -3,7 +3,8 @@
 # 将 openclaw CLI 发出的 systemctl 调用转换为进程信号操作
 set -euo pipefail
 
-# 停止标记文件（用于暂停 supervisor 循环）
+# 标记文件
+DISABLED_MARKER="/tmp/openclaw-gateway.disabled"
 STOP_MARKER="/tmp/openclaw-gateway.stopped"
 
 # 查找网关进程 PID
@@ -11,6 +12,7 @@ STOP_MARKER="/tmp/openclaw-gateway.stopped"
 # Node.js 的 process.title 会覆盖整个 /proc/PID/cmdline，
 # 导致服务进程和 CLI 进程的命令行完全相同，无法通过 pgrep 区分
 find_gateway_pid() {
+  local pid
   pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
   if [ -n "$pid" ] && [ "$pid" != "1" ]; then
     echo "$pid"
@@ -56,32 +58,28 @@ case "$action" in
     # 始终返回 0：openclaw CLI 调用 "systemctl --user status" 检测 systemd 是否可用
     # 返回非零 = "systemctl 不可用" = 所有命令都会失败
     exit 0 ;;
-  enable|disable)
-    # Service is always enabled in container (managed by supervisor)
-    exit 0 ;;
+  enable)
+    rm -f "$DISABLED_MARKER"; exit 0 ;;
+  disable)
+    touch "$DISABLED_MARKER"; exit 0 ;;
   is-enabled)
-    # Check if service file exists (created in Dockerfile)
-    [ -f "${HOME}/.config/systemd/user/openclaw-gateway.service" ] && exit 0
-    exit 1 ;;
+    [ -f "$DISABLED_MARKER" ] && exit 1
+    exit 0 ;;
   is-active)
     # 检查网关进程是否在运行
     pid=$(find_gateway_pid || true)
     [ -n "$pid" ] && { echo "active"; exit 0; } || { echo "inactive"; exit 3; } ;;
   start)
-    # 启动网关：清除停止标记，让主 supervisor 继续运行
-    # 注意：主 supervisor 由 kasmvnc-startup.sh 启动，这里只是解除停止状态
-    rm -f "$STOP_MARKER"
+    rm -f "$DISABLED_MARKER" "$STOP_MARKER"
     wait_gateway_ready; exit $? ;;
   restart)
     # 重启网关：杀掉当前 gateway，主 supervisor 会自动重启
     pid=$(find_gateway_pid || true)
     if [ -z "$pid" ]; then
-      # 如果没有运行，清除停止标记让主 supervisor 启动
-      rm -f "$STOP_MARKER"
+      rm -f "$DISABLED_MARKER" "$STOP_MARKER"
       wait_gateway_ready; exit $?
     fi
-    # 确保没有 STOP_MARKER（让主 supervisor 能自动重启）
-    rm -f "$STOP_MARKER"
+    rm -f "$DISABLED_MARKER" "$STOP_MARKER"
     # 杀掉当前 gateway 进程
     kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
@@ -97,7 +95,7 @@ case "$action" in
     touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
     [ -z "$pid" ] && exit 0
-    kill -TERM "$pid" 2>/dev/null || exit $?
+    kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then exit 0; fi
       sleep 0.25

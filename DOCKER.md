@@ -266,6 +266,9 @@ docker build -t openclaw-kasmvnc:latest \
 ```bash
 docker build -t openclaw-kasmvnc:latest-intl \
   --build-arg USE_CN_MIRROR=0 \
+  --build-arg TZ=UTC \
+  --build-arg LANG=en_US.UTF-8 \
+  --build-arg LANGUAGE=en_US:en \
   --build-arg NO_DIND=0 \
   .
 ```

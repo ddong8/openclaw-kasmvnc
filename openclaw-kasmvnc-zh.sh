@@ -288,10 +288,10 @@ ARG TZ=Asia/Shanghai
 ARG LANG=zh_CN.UTF-8
 # 将 KasmVNC 加入 PATH，设置中文环境变量和输入法框架
 ENV PATH="/opt/KasmVNC/bin:${PATH}"
-ENV TZ=\${TZ}
-ENV LANG=\${LANG}
-ENV LANGUAGE=\${LANG%.*}:\${LANG%%_*}
-ENV LC_ALL=\${LANG}
+ENV TZ=${TZ}
+ENV LANG=${LANG}
+ENV LANGUAGE=zh_CN:zh
+ENV LC_ALL=${LANG}
 # Fcitx5 输入法环境变量（GTK/Qt/X11 三端都需要设置）
 ENV GTK_IM_MODULE=fcitx
 ENV QT_IM_MODULE=fcitx
@@ -322,6 +322,7 @@ RUN apt-get update \
     fcitx5-frontend-qt5 \
     fcitx5-config-qt \
     im-config \
+    jq \
     libdatetime-perl \
     libegl1 \
     libglu1-mesa \
@@ -513,8 +514,8 @@ else
   chmod 700 "${HOME}/.openclaw" 2>/dev/null || true
 fi
 
-# 后台启动 Docker 守护进程（DinD 支持），等待 socket 就绪
-if command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+# 后台启动 Docker 守护进程（DinD 支持），等待 socket 就绪（仅在未禁用 DinD 时）
+if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
   (sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &) || true
   for i in $(seq 1 30); do
     [ -S /var/run/docker.sock ] && break
@@ -663,18 +664,18 @@ if command -v xdg-settings >/dev/null 2>&1; then
 fi
 
 # ── 清理配置文件中的平台指纹（保留 auth tokens）──
-if [ -f "\${HOME}/.openclaw/openclaw.json" ]; then
+if [ -f "${HOME}/.openclaw/openclaw.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     # Use jq to surgically remove only platform fields
     jq 'del(.identity.pinnedPlatform, .identity.pinnedDeviceFamily)' \
-      "\${HOME}/.openclaw/openclaw.json" > "\${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
-      && mv "\${HOME}/.openclaw/openclaw.json.tmp" "\${HOME}/.openclaw/openclaw.json" || true
+      "${HOME}/.openclaw/openclaw.json" > "${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
+      && mv "${HOME}/.openclaw/openclaw.json.tmp" "${HOME}/.openclaw/openclaw.json" || true
   else
     # Fallback: if non-Linux platform detected, backup entire config
-    if grep -q '"pinnedPlatform".*"darwin"' "\${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
-       grep -q '"pinnedPlatform".*"win32"' "\${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
+    if grep -q '"pinnedPlatform".*"darwin"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
+       grep -q '"pinnedPlatform".*"win32"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
       echo "Detected non-Linux platform config, backing up..." >&2
-      mv "\${HOME}/.openclaw/openclaw.json" "\${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
+      mv "${HOME}/.openclaw/openclaw.json" "${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
     fi
   fi
 fi
@@ -704,7 +705,7 @@ rm -f /tmp/openclaw-gateway.stopped
 # 配置 gateway 允许非 loopback 绑定时的 Host-header 回退（远程访问必需）
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 # 强制设置 gateway bind 配置（覆盖可能的 loopback 配置）
-openclaw config set gateway.bind "\${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
+openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 
 # 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
 # 设置环境变量让 gateway 知道有 supervisor 管理
@@ -780,6 +781,7 @@ STOP_MARKER="/tmp/openclaw-gateway.stopped"
 # Node.js 的 process.title 会覆盖整个 /proc/PID/cmdline，
 # 导致服务进程和 CLI 进程的命令行完全相同，无法通过 pgrep 区分
 find_gateway_pid() {
+  local pid
   pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
   if [ -n "$pid" ] && [ "$pid" != "1" ]; then
     echo "$pid"
@@ -870,7 +872,7 @@ case "$action" in
     touch "$STOP_MARKER"
     pid=$(find_gateway_pid || true)
     [ -z "$pid" ] && exit 0
-    kill -TERM "$pid" 2>/dev/null || exit $?
+    kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 60); do
       if ! kill -0 "$pid" 2>/dev/null; then exit 0; fi
       sleep 0.25
@@ -921,7 +923,7 @@ assert_gateway_running() {
 require_install_dir() {
   if [ ! -d "$INSTALL_DIR" ]; then
     echo "Install directory not found: $INSTALL_DIR" >&2
-    echo "Run './openclaw-kasmvnc.sh install' first." >&2
+    echo "Run './openclaw-kasmvnc-zh.sh install' first." >&2
     exit 1
   fi
 }
@@ -1011,6 +1013,9 @@ install_cmd() {
     upsert_env_line .env LANG "zh_CN.UTF-8"
     upsert_env_line .env LANGUAGE "zh_CN:zh"
     upsert_env_line .env LC_ALL "zh_CN.UTF-8"
+    if [ "${NO_DIND:-0}" = "1" ]; then
+      upsert_env_line .env NO_DIND "1"
+    fi
     if [ -n "$HTTP_PROXY_URL" ]; then
       upsert_env_line .env OPENCLAW_HTTP_PROXY "$HTTP_PROXY_URL"
     fi

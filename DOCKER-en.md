@@ -13,7 +13,7 @@ docker run -d \
   -p 8443:8444 \
   -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
   -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
-  -v ~/.openclaw:/home/node/.openclaw \
+  -v ~/openclaw-data:/home/node \
   ddong8/openclaw-kasmvnc:latest
 ```
 
@@ -29,7 +29,7 @@ docker run -d \
   -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
   -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
   -e USE_CN_MIRROR=0 \
-  -v ~/.openclaw:/home/node/.openclaw \
+  -v ~/openclaw-data:/home/node \
   ddong8/openclaw-kasmvnc:latest-intl
 ```
 
@@ -60,8 +60,7 @@ docker run -d \
 
 | Container Path | Description |
 |----------------|-------------|
-| `/home/node/.openclaw` | OpenClaw configuration and data directory |
-| `/home/node/.openclaw/workspace` | Workspace directory |
+| `/home/node` | Home directory (configuration, workspace, and all user data) |
 
 ## Disable Docker-in-Docker (More Secure)
 
@@ -75,7 +74,7 @@ docker run -d \
   -p 8443:8444 \
   -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
   -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
-  -v ~/.openclaw:/home/node/.openclaw \
+  -v ~/openclaw-data:/home/node \
   ddong8/openclaw-kasmvnc:latest-no-dind
 ```
 
@@ -95,7 +94,7 @@ docker run -d \
   -p 8443:8444 \
   -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
   -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
-  -v ~/.openclaw:/home/node/.openclaw \
+  -v ~/openclaw-data:/home/node \
   ddong8/openclaw-kasmvnc:latest
 ```
 
@@ -106,7 +105,7 @@ Create `docker-compose.yml`:
 ```yaml
 services:
   openclaw-gateway:
-    image: ddong8/openclaw-kasmvnc:latest
+    image: ddong8/openclaw-kasmvnc:latest-intl
     container_name: openclaw-kasmvnc
     privileged: true
     shm_size: '2gb'
@@ -117,13 +116,13 @@ services:
       OPENCLAW_KASMVNC_PASSWORD: ${OPENCLAW_KASMVNC_PASSWORD}
       OPENCLAW_KASMVNC_RESOLUTION: 1920x1080
       OPENCLAW_KASMVNC_DEPTH: 24
+      USE_CN_MIRROR: "0"
       TZ: UTC
       LANG: en_US.UTF-8
       LANGUAGE: en_US:en
       LC_ALL: en_US.UTF-8
     volumes:
-      - ~/.openclaw:/home/node/.openclaw
-      - ~/.openclaw/workspace:/home/node/.openclaw/workspace
+      - ~/openclaw-data:/home/node
     ports:
       - "18789:18789"
       - "18790:18790"
@@ -190,6 +189,9 @@ docker build -t openclaw-kasmvnc:latest \
 ```bash
 docker build -t openclaw-kasmvnc:latest-intl \
   --build-arg USE_CN_MIRROR=0 \
+  --build-arg TZ=UTC \
+  --build-arg LANG=en_US.UTF-8 \
+  --build-arg LANGUAGE=en_US:en \
   --build-arg NO_DIND=0 \
   .
 ```
