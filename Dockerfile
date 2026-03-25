@@ -145,12 +145,14 @@ RUN set -eux; \
     *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
   esac; \
   pkg="kasmvncserver_bookworm_${KASMVNC_VERSION}_${pkg_arch}.deb"; \
+  cn_url="https://claw.ihasy.com/mirror/kasmvnc/${pkg}"; \
+  gh_url="https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/${pkg}"; \
   if [ "${USE_CN_MIRROR}" = "1" ]; then \
-    url="https://claw.ihasy.com/mirror/kasmvnc/${pkg}"; \
+    curl -fsSL --connect-timeout 15 "${cn_url}" -o "/tmp/${pkg}" \
+    || curl -fsSL "${gh_url}" -o "/tmp/${pkg}"; \
   else \
-    url="https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/${pkg}"; \
+    curl -fsSL "${gh_url}" -o "/tmp/${pkg}"; \
   fi; \
-  curl -fsSL "${url}" -o "/tmp/${pkg}"; \
   apt-get update --allow-insecure-repositories || apt-get update -o Acquire::AllowInsecureRepositories=true || apt-get update; \
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated "/tmp/${pkg}"; \
   rm -f "/tmp/${pkg}"; \
@@ -158,7 +160,8 @@ RUN set -eux; \
 
 # Install Rime Ice (雾凇拼音) dictionary and configuration
 RUN if [ "${USE_CN_MIRROR}" = "1" ]; then \
-      curl -fsSL https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/rime-ice.tar.gz; \
+      curl -fsSL --connect-timeout 15 https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/rime-ice.tar.gz \
+      || curl -fsSL https://github.com/iDvel/rime-ice/archive/refs/heads/main.tar.gz -o /tmp/rime-ice.tar.gz; \
     else \
       curl -fsSL https://github.com/iDvel/rime-ice/archive/refs/heads/main.tar.gz -o /tmp/rime-ice.tar.gz; \
     fi \

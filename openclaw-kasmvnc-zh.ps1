@@ -330,15 +330,16 @@ RUN set -eux; \
     *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
   esac; \
   pkg="kasmvncserver_bookworm_${KASMVNC_VERSION}_${pkg_arch}.deb"; \
-  url="https://claw.ihasy.com/mirror/kasmvnc/${pkg}"; \
-  curl -fsSL "${url}" -o "/tmp/${pkg}"; \
+  curl -fsSL --connect-timeout 15 "https://claw.ihasy.com/mirror/kasmvnc/${pkg}" -o "/tmp/${pkg}" \
+  || curl -fsSL "https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/${pkg}" -o "/tmp/${pkg}"; \
   apt-get update --allow-insecure-repositories || apt-get update -o Acquire::AllowInsecureRepositories=true || apt-get update; \
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated "/tmp/${pkg}"; \
   rm -f "/tmp/${pkg}"; \
   rm -rf /var/lib/apt/lists/*
 
 # Install Rime Ice (雾凇拼音) dictionary and configuration
-RUN curl -fsSL https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/rime-ice.tar.gz \
+RUN (curl -fsSL --connect-timeout 15 https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/rime-ice.tar.gz \
+  || curl -fsSL https://github.com/iDvel/rime-ice/archive/refs/heads/main.tar.gz -o /tmp/rime-ice.tar.gz) \
   && mkdir -p /home/node/.local/share/fcitx5/rime \
   && tar xzf /tmp/rime-ice.tar.gz -C /tmp/ \
   && cp -r /tmp/rime-ice-main/* /home/node/.local/share/fcitx5/rime/ \
