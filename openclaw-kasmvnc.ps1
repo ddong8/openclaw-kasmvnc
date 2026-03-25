@@ -393,6 +393,12 @@ fi
 # Ensure interactive shells call openclaw directly (no throttling alias)
 sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
+# Ensure desktop icons exist (volume mount may hide image-baked icons on re-install)
+mkdir -p "${HOME}/Desktop"
+[ -f "${HOME}/Desktop/chromium.desktop" ] || cp /usr/share/applications/chromium-kasm.desktop "${HOME}/Desktop/chromium.desktop" 2>/dev/null || true
+[ -f "${HOME}/Desktop/vscode.desktop" ] || cp /usr/share/applications/code.desktop "${HOME}/Desktop/vscode.desktop" 2>/dev/null || true
+chmod +x "${HOME}/Desktop"/*.desktop 2>/dev/null || true
+
 # Configure NPM registry based on USE_CN_MIRROR
 if [ "${USE_CN_MIRROR:-0}" = "1" ]; then
   cat > "${HOME}/.npmrc" <<'EONPMRC'

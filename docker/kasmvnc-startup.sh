@@ -48,6 +48,12 @@ fi
 # 清理可能残留的 openclaw 别名（历史版本遗留）
 sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
+# 确保桌面图标存在（volume 挂载可能覆盖镜像中的图标）
+mkdir -p "${HOME}/Desktop"
+[ -f "${HOME}/Desktop/chromium.desktop" ] || cp /usr/share/applications/chromium-kasm.desktop "${HOME}/Desktop/chromium.desktop" 2>/dev/null || true
+[ -f "${HOME}/Desktop/vscode.desktop" ] || cp /usr/share/applications/code.desktop "${HOME}/Desktop/vscode.desktop" 2>/dev/null || true
+chmod +x "${HOME}/Desktop"/*.desktop 2>/dev/null || true
+
 # 配置 npm 使用镜像源
 if [ "${USE_CN_MIRROR:-1}" = "1" ]; then
   cat > "${HOME}/.npmrc" <<'EONPMRC'
