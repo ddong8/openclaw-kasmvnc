@@ -233,6 +233,42 @@ WantedBy=default.target
 EOSVC
 fi
 
+# ── 预装/更新 self-improving-agent 技能 ──
+SKILL_DIR="${HOME}/.openclaw/skills/self-improving-agent"
+if [ ! -d "${SKILL_DIR}/scripts" ] && [ ! -f "${SKILL_DIR}/SKILL.md" ]; then
+  echo "Installing self-improving-agent skill..." >&2
+  mkdir -p "${HOME}/.openclaw/skills"
+  git clone --depth 1 https://github.com/peterskoett/self-improving-agent.git "${SKILL_DIR}" 2>/dev/null \
+    && rm -rf "${SKILL_DIR}/.git" || true
+fi
+# Ensure scripts are executable
+chmod +x "${SKILL_DIR}/scripts/"*.sh 2>/dev/null || true
+# Install hook if missing
+if [ -d "${SKILL_DIR}/hooks/openclaw" ] && [ ! -d "${HOME}/.openclaw/hooks/self-improvement" ]; then
+  mkdir -p "${HOME}/.openclaw/hooks"
+  cp -r "${SKILL_DIR}/hooks/openclaw" "${HOME}/.openclaw/hooks/self-improvement"
+fi
+# Initialize .learnings directory if missing
+LEARN_DIR="${HOME}/.openclaw/workspace/.learnings"
+if [ ! -d "${LEARN_DIR}" ]; then
+  mkdir -p "${LEARN_DIR}"
+  printf '# Learnings\n\nCorrections, insights, and knowledge gaps captured during development.\n\n**Categories**: correction | insight | knowledge_gap | best_practice\n\n---\n' > "${LEARN_DIR}/LEARNINGS.md"
+  printf '# Errors\n\nCommand failures and integration errors.\n\n---\n' > "${LEARN_DIR}/ERRORS.md"
+  printf '# Feature Requests\n\nCapabilities requested by the user.\n\n---\n' > "${LEARN_DIR}/FEATURE_REQUESTS.md"
+fi
+# Ensure skill is enabled in openclaw.json
+OCFG="${HOME}/.openclaw/openclaw.json"
+mkdir -p "${HOME}/.openclaw"
+if [ ! -f "${OCFG}" ]; then
+  echo '{}' > "${OCFG}"
+fi
+if command -v jq >/dev/null 2>&1; then
+  if ! jq -e '.skills.entries["self-improving-agent"].enabled' "${OCFG}" >/dev/null 2>&1; then
+    jq '.skills.entries["self-improving-agent"].enabled = true' "${OCFG}" > "${OCFG}.tmp" 2>/dev/null \
+      && mv "${OCFG}.tmp" "${OCFG}" || true
+  fi
+fi
+
 # 清理停止标记（容器重启后应该自动启动）
 rm -f /tmp/openclaw-gateway.stopped
 
@@ -240,6 +276,8 @@ rm -f /tmp/openclaw-gateway.stopped
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 # 强制设置 gateway bind 配置（覆盖可能的 loopback 配置）
 openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
+# 启用 self-improvement hook
+openclaw hooks enable self-improvement >/dev/null 2>&1 || true
 
 # 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
 # 设置环境变量让 gateway 知道有 supervisor 管理
