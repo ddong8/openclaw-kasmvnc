@@ -104,18 +104,36 @@ jobs:
             -e OPENCLAW_KASMVNC_PASSWORD=test-password \
             ${{ env.IMAGE_NAME }}:${{ matrix.variant.name }}
 
-          # Wait for services to start
-          echo "Waiting for services to start..."
-          sleep 45
-
-          # Check container is running
+          # Wait for container to be running
+          sleep 5
           if ! docker ps | grep test-container; then
             echo "Container failed to start"
             docker logs test-container
             exit 1
           fi
 
-          # Check gateway port is listening
+          # Wait for gateway port 18789 to respond (up to 180s)
+          echo "Waiting for gateway port 18789..."
+          for i in $(seq 1 60); do
+            if docker exec test-container sh -c "curl -fs http://localhost:18789/ >/dev/null 2>&1"; then
+              echo "Gateway is up (after ${i} tries)"
+              break
+            fi
+            if [ "$i" = "60" ]; then
+              echo "ERROR: gateway did not come up within 180s"
+              echo "=== docker ps ==="
+              docker ps -a
+              echo "=== docker logs test-container ==="
+              docker logs test-container
+              echo "=== gateway log ==="
+              docker exec test-container cat /tmp/openclaw-gateway.log 2>/dev/null || true
+              echo "=== kasmvnc log ==="
+              docker exec test-container cat /tmp/openclaw-kasmvnc.log 2>/dev/null || true
+              exit 1
+            fi
+            sleep 3
+          done
+
           echo "Checking gateway port..."
           docker exec test-container sh -c "curl -f http://localhost:18789/ || exit 1"
 
