@@ -511,6 +511,13 @@ fi
 # Clear stop marker (auto-start after container restart)
 rm -f /tmp/openclaw-gateway.stopped
 
+# Repair/stamp the local gateway config before startup. Recent OpenClaw
+# releases treat an existing config without gateway.mode as damaged and refuse
+# to start, even when runtime callers still pass --allow-unconfigured.
+mkdir -p "${HOME}/.openclaw/workspace"
+openclaw config set gateway.mode local >/dev/null 2>&1 || true
+openclaw config set agents.defaults.workspace "${HOME}/.openclaw/workspace" >/dev/null 2>&1 || true
+
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 # Enable self-improvement hook

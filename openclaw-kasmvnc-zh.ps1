@@ -636,6 +636,13 @@ fi
 # Clear stop marker (auto-start after container restart)
 rm -f /tmp/openclaw-gateway.stopped
 
+# 在启动前修复/补齐本地 gateway 配置。最近的 OpenClaw 版本会把
+# “配置文件已存在但缺少 gateway.mode” 视为损坏配置，即使仍传了
+# --allow-unconfigured 也可能拒绝启动。
+mkdir -p "${HOME}/.openclaw/workspace"
+openclaw config set gateway.mode local >/dev/null 2>&1 || true
+openclaw config set agents.defaults.workspace "${HOME}/.openclaw/workspace" >/dev/null 2>&1 || true
+
 openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 # 启用 self-improvement hook
