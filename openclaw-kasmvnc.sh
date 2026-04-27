@@ -773,11 +773,16 @@ assert_gateway_running() {
     echo "openclaw-gateway is not running (container: $cid)." >&2
     exit 1
   fi
-  # Also verify the gateway process inside the container is alive (up to 240s)
+  # Also verify the gateway process inside the container is alive (up to 600s)
+  # First-time install on slow filesystems may need 5-10 minutes
+  echo "Waiting for gateway to be ready (up to 10 minutes)..." >&2
   local retries=0
-  while [ $retries -lt 120 ]; do
+  while [ $retries -lt 300 ]; do
     if docker exec "$cid" sh -c 'systemctl is-active openclaw-gateway' >/dev/null 2>&1; then
       return 0
+    fi
+    if [ $retries -gt 0 ] && [ $((retries % 30)) -eq 0 ]; then
+      echo "  ...still waiting ($((retries * 2))s elapsed)" >&2
     fi
     retries=$((retries + 1))
     sleep 2
@@ -786,6 +791,10 @@ assert_gateway_running() {
   docker logs --tail 80 "$cid" >&2 2>&1 || true
   echo "=== Last 60 lines of gateway log ===" >&2
   docker exec "$cid" sh -c 'tail -n 60 /tmp/openclaw-gateway.log 2>/dev/null' >&2 || true
+  echo "" >&2
+  echo "Gateway not ready after 10 minutes. Check status with:" >&2
+  echo "  docker exec $cid systemctl is-active openclaw-gateway" >&2
+  echo "  curl http://127.0.0.1:18789/" >&2
   echo "Container is running but gateway process is not responding (container: $cid)." >&2
   exit 1
 }

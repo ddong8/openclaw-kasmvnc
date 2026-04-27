@@ -823,16 +823,25 @@ function Assert-GatewayRunning {
   if ($LASTEXITCODE -ne 0 -or "$running".Trim() -ne "true") {
     throw "openclaw-gateway is not running (container: $cid)."
   }
-  # Also verify the gateway process inside the container is alive (最多等待 240 秒)
-  for ($i = 0; $i -lt 120; $i++) {
+  # Also verify the gateway process inside the container is alive (最多等待 600 秒)
+  # Windows + Docker Desktop 首次安装挂载卷较慢，gateway 启动可能需要 5-10 分钟
+  Write-Host "Waiting for gateway to be ready (up to 10 minutes on first Windows install)..." -ForegroundColor Cyan
+  for ($i = 0; $i -lt 300; $i++) {
     $result = & docker exec $cid sh -c "systemctl is-active openclaw-gateway" 2>$null
     if ($LASTEXITCODE -eq 0) { return }
+    if ($i -gt 0 -and ($i % 30) -eq 0) {
+      Write-Host "  ...still waiting ($([int]($i*2))s elapsed)" -ForegroundColor DarkGray
+    }
     Start-Sleep -Seconds 2
   }
   Write-Host "=== 容器日志最近 80 行 ===" -ForegroundColor Yellow
   & docker logs --tail 80 $cid
   Write-Host "=== Gateway 日志最近 60 行 ===" -ForegroundColor Yellow
   & docker exec $cid sh -c "tail -n 60 /tmp/openclaw-gateway.log 2>/dev/null"
+  Write-Host ""
+  Write-Host "Gateway 在 10 分钟内未就绪。如果是 Windows 首次安装，挂载卷可能较慢，请稍后再试：" -ForegroundColor Yellow
+  Write-Host "  docker exec $cid systemctl is-active openclaw-gateway" -ForegroundColor Yellow
+  Write-Host "  curl http://127.0.0.1:18789/ -UseBasicParsing" -ForegroundColor Yellow
   throw "Container is running but gateway process is not responding (container: $cid)."
 }
 

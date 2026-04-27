@@ -687,16 +687,25 @@ function Assert-GatewayRunning {
   if ($LASTEXITCODE -ne 0 -or "$running".Trim() -ne "true") {
     throw "openclaw-gateway is not running (container: $cid)."
   }
-  # Also verify the gateway process inside the container is alive (up to 240s)
-  for ($i = 0; $i -lt 120; $i++) {
+  # Also verify the gateway process inside the container is alive (up to 600s)
+  # First-time install on Windows + Docker Desktop is slow due to volume mount IO
+  Write-Host "Waiting for gateway to be ready (up to 10 minutes on first Windows install)..." -ForegroundColor Cyan
+  for ($i = 0; $i -lt 300; $i++) {
     $result = & docker exec $cid sh -c "systemctl is-active openclaw-gateway" 2>$null
     if ($LASTEXITCODE -eq 0) { return }
+    if ($i -gt 0 -and ($i % 30) -eq 0) {
+      Write-Host "  ...still waiting ($([int]($i*2))s elapsed)" -ForegroundColor DarkGray
+    }
     Start-Sleep -Seconds 2
   }
   Write-Host "=== Last 80 lines of container log ===" -ForegroundColor Yellow
   & docker logs --tail 80 $cid
   Write-Host "=== Last 60 lines of gateway log ===" -ForegroundColor Yellow
   & docker exec $cid sh -c "tail -n 60 /tmp/openclaw-gateway.log 2>/dev/null"
+  Write-Host ""
+  Write-Host "Gateway not ready after 10 minutes. On Windows first install this may take longer; check status with:" -ForegroundColor Yellow
+  Write-Host "  docker exec $cid systemctl is-active openclaw-gateway" -ForegroundColor Yellow
+  Write-Host "  curl http://127.0.0.1:18789/ -UseBasicParsing" -ForegroundColor Yellow
   throw "Container is running but gateway process is not responding (container: $cid)."
 }
 
