@@ -466,6 +466,8 @@ sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
 # Ensure desktop icons exist (volume mount may hide image-baked icons on re-install)
 mkdir -p "${HOME}/Desktop"
+# Clean up stale desktop icons from earlier image versions
+rm -f "${HOME}/Desktop/hermes-agent.desktop" 2>/dev/null || true
 [ -f "${HOME}/Desktop/chromium.desktop" ] || cp /usr/share/applications/chromium-kasm.desktop "${HOME}/Desktop/chromium.desktop" 2>/dev/null || true
 [ -f "${HOME}/Desktop/vscode.desktop" ] || cp /usr/share/applications/code.desktop "${HOME}/Desktop/vscode.desktop" 2>/dev/null || true
 chmod +x "${HOME}/Desktop/chromium.desktop" "${HOME}/Desktop/vscode.desktop" 2>/dev/null || true

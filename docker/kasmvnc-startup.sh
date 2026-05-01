@@ -48,6 +48,8 @@ sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
 # 确保桌面图标存在（volume 挂载可能覆盖镜像中的图标）
 mkdir -p "${HOME}/Desktop"
+# 清理旧版可能遗留在挂载卷里的桌面图标
+rm -f "${HOME}/Desktop/hermes-agent.desktop" 2>/dev/null || true
 [ -f "${HOME}/Desktop/chromium.desktop" ] || cp /usr/share/applications/chromium-kasm.desktop "${HOME}/Desktop/chromium.desktop" 2>/dev/null || true
 [ -f "${HOME}/Desktop/vscode.desktop" ] || cp /usr/share/applications/code.desktop "${HOME}/Desktop/vscode.desktop" 2>/dev/null || true
 chmod +x "${HOME}/Desktop/chromium.desktop" "${HOME}/Desktop/vscode.desktop" 2>/dev/null || true
